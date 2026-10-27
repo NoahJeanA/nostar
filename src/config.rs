@@ -92,7 +92,6 @@ pub struct Config {
     pub markers: Vec<MarkerChar>,
     pub binnen_i: bool,
     pub fallback: Fallback,
-    pub participles: bool,
     pub skip_monospace: bool,
     pub source: Source,
     /// Key: feminine stem as written before the marker.
@@ -108,7 +107,6 @@ struct RawConfig {
     markers: Option<Vec<String>>,
     binnen_i: Option<bool>,
     fallback: Option<String>,
-    participles: bool,
     skip_monospace: bool,
     source: Option<RawSource>,
     words: BTreeMap<String, RawWord>,
@@ -138,7 +136,6 @@ impl Default for Config {
             markers: MarkerChar::ALL.to_vec(),
             binnen_i: true,
             fallback: Fallback::Cut,
-            participles: false,
             skip_monospace: false,
             source: Source {
                 commit: DEFAULT_COMMIT.into(),
@@ -198,7 +195,6 @@ impl Config {
                     ));
                 }
             },
-            participles: raw.participles,
             skip_monospace: raw.skip_monospace,
             source: match raw.source {
                 None => d.source,
@@ -286,12 +282,14 @@ fn hex(key: &str, value: &str, len: usize) -> Result<String, ConfigError> {
     }
 }
 
-/// Letters in the sense of Unicode category L, as in fachl. Spezifikation 3.
-/// Non-empty and only Unicode letters (category L); used for own words and dictionary entries.
+/// Letter in the sense of fachl. Spezifikation 3: Unicode category L.
+pub fn is_letter(c: char) -> bool {
+    c.general_category_group() == GeneralCategoryGroup::Letter
+}
+
+/// Non-empty and only letters; used for own words and dictionary entries.
 pub fn is_word(s: &str) -> bool {
-    !s.is_empty()
-        && s.chars()
-            .all(|c| c.general_category_group() == GeneralCategoryGroup::Letter)
+    !s.is_empty() && s.chars().all(is_letter)
 }
 
 fn check_word(stem: String, w: RawWord) -> Result<(String, Word), ConfigError> {
@@ -359,7 +357,6 @@ exclude = []
 markers = ["*", ":", "_", "·", "/", "/-"]
 binnen_i = true
 fallback = "cut"
-participles = false
 skip_monospace = false
 
 [source]

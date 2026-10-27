@@ -1,0 +1,173 @@
+# nostar test cases (fachl. Spezifikation 13.1, TECHNIK.md 8.7)
+# input <TAB> expected display [<TAB> needs]
+# fallback=cut on unchanged cases: with fallback "marker" any marker between letters is hidden.
+# \u{AD} is a soft hyphen.
+
+# 4.5 required examples
+Lehrer*innen	Lehrer
+Lehrer*in	Lehrer
+Kolleg*innen	Kollegen
+Kolleg*in	Kollege
+Ärzt:innen	Ärzte
+Ärzt*in	Arzt
+Bäuer*innen	Bauern
+Kund_innen	Kunden
+KollegInnen	Kollegen	binnen_i
+Stammkund*innen	Stammkunden
+Polizist*innen	Polizisten
+der*die	der
+jede*r	jeder
+ein*e	ein
+Vorsitzende*r	Vorsitzender
+Lehrer*innenzimmer	Lehrerzimmer
+LEHRER*INNEN	LEHRER
+5 * 3	5 * 3
+5*3	5*3	fallback=cut
+x*y	x*y	fallback=cut
+*wichtig*	*wichtig*
+Fußnote*	Fußnote*
+12:30	12:30
+https://example.org	https://example.org
+LinkedIn	LinkedIn
+PlugIn	PlugIn
+
+# 4.2 stages
+Ärzt*in	Arzt
+Kolleg*in	Kollege
+Beamt*innen	Beamte
+Beamt*in	Beamter
+Oberärzt*innen	Oberärzte
+Oberärzt*in	Oberarzt
+eine*n	einen
+Angestellte*n	Angestellten
+Ingenieur*innen	Ingenieure
+Arbeiter*innen	Arbeiter
+
+# 4.3 compounds
+Ärzt*innenkammer	Ärztekammer
+Kund*innenservice	Kundenservice
+Lehrer*innen-Konferenz	Lehrer-Konferenz
+Mitarbeiter*innenzeitung	Mitarbeiterzeitung
+Kolleg*innen-Netzwerk	Kollegen-Netzwerk
+
+# 4.4 case
+lehrer*innen	lehrer
+Lehrer*Innen	Lehrer
+ÄRZT*INNEN	ÄRZTE
+KOLLEG*IN	KOLLEGE
+Stammkund*Innen	Stammkunden
+
+# 4.1 markers
+Lehrer·innen	Lehrer
+Lehrer/innen	Lehrer
+Lehrer/-innen	Lehrer
+Kolleg/-in	Kollege
+Ärzt/in	Arzt
+Kund*-innen	Kunden
+MitarbeiterInnen	Mitarbeiter	binnen_i
+StammkundInnen	Stammkunden	binnen_i
+OberärztInnen	Oberärzte	binnen_i
+LehrerIn	Lehrer	binnen_i
+KundInnen	Kunden	binnen_i
+
+# stage 1: fixed forms and adjective endings
+Der*die	Der
+DER*DIE	DER
+den*die	den
+dem*der	dem
+Eine*n	Einen
+einem*r	einem
+keine*r	keiner
+diese*r	dieser
+jede:r	jeder
+Jede*r	Jeder
+er*sie	er
+Er*sie	Er
+ihm*ihr	ihm
+seine*ihre	seine
+kein*e	kein
+Abgeordnete*r	Abgeordneter
+erfahrene*r	erfahrener
+jede*n	jeden
+Unsere*n	Unseren
+Liebe*r	Lieber
+der/die	der
+
+# 4.6 not handled in version 1
+die*der	die*der	fallback=cut
+sie*er	sie*er	fallback=cut
+der/die/das	der/die/das
+das/der/die	das/der/die
+er/sie/es	er/sie/es
+Studierende	Studierende
+erfahrene*n	erfahrene*n	fallback=cut
+Lehrerinnen und Lehrer	Lehrerinnen und Lehrer
+
+# stage 5 fallback
+Coach*innen	Coach	fallback=cut
+Coach*in	Coach	fallback=cut
+Coach*innen	Coachinnen	fallback=marker
+Coach*innen	Coach*innen	fallback=off
+Coach/innen	Coach/innen
+
+# sentences in the style of news and public authorities
+Die Bürger*innen können ihre Anträge online stellen.	Die Bürger können ihre Anträge online stellen.
+Alle Mitarbeiter:innen erhalten eine Prämie.	Alle Mitarbeiter erhalten eine Prämie.
+Gesucht wird ein*e erfahrene*r Entwickler*in (m/w/d).	Gesucht wird ein erfahrener Entwickler (m/w/d).
+Wir suchen eine*n Entwickler*in.	Wir suchen einen Entwickler.
+Die Schüler*innen und Lehrkräfte trafen sich in der Aula.	Die Schüler und Lehrkräfte trafen sich in der Aula.
+Jede*r Antragsteller*in muss einen Nachweis vorlegen.	Jeder Antragsteller muss einen Nachweis vorlegen.
+Der*die Vorsitzende eröffnete die Sitzung.	Der Vorsitzende eröffnete die Sitzung.
+Unsere Kund*innen sind uns wichtig.	Unsere Kunden sind uns wichtig.
+Die Ärzt*innenkammer warnt vor Engpässen.	Die Ärztekammer warnt vor Engpässen.
+Die Student*innen protestierten vor dem Rathaus.	Die Studenten protestierten vor dem Rathaus.
+Rund 200 Teilnehmer*innen kamen zur Veranstaltung.	Rund 200 Teilnehmer kamen zur Veranstaltung.
+Die Wissenschaftler*innen veröffentlichten ihre Ergebnisse.	Die Wissenschaftler veröffentlichten ihre Ergebnisse.
+Sehr geehrte Kolleg*innen,	Sehr geehrte Kollegen,
+Liebe Leser:innen	Liebe Leser
+Ansprechpartner*in: Frau Müller	Ansprechpartner: Frau Müller
+Die Pflegekräfte und Ärzt/-innen	Die Pflegekräfte und Ärzte
+Die Polizist_innen sicherten den Tatort.	Die Polizisten sicherten den Tatort.
+Die Expert*innen sind sich einig.	Die Experten sind sich einig.
+Die Journalist*innen fragten nach.	Die Journalisten fragten nach.
+Die Autor*innen des Buches	Die Autoren des Buches
+Die Nutzer*innen der App	Die Nutzer der App
+Die Ärzt*innen und Pfleger*innen	Die Ärzte und Pfleger
+der/die Antragsteller/in	der Antragsteller
+Ein*e Beamt*in prüft den Antrag.	Ein Beamter prüft den Antrag.
+Die Influencer*innen	Die Influencer
+
+# soft hyphens (4.8)
+Leh\u{AD}rer*in\u{AD}nen	Leh\u{AD}rer\u{AD}
+Bür\u{AD}ger*in\u{AD}nen	Bür\u{AD}ger\u{AD}
+Ärz\u{AD}t*innen	Ärz\u{AD}te
+Ärz\u{AD}t*in	Arz\u{AD}t
+
+# must stay unchanged: code, URLs, times, Markdown, footnotes, product names
+a*b	a*b	fallback=cut
+2*x	2*x	fallback=cut
+i*n	i*n	fallback=cut
+SELECT * FROM t	SELECT * FROM t
+**kwargs	**kwargs
+std::string	std::string
+http://host:8080/path	http://host:8080/path
+/usr/share/fonts	/usr/share/fonts
+docs/index	docs/index
+x/in	x/in
+display:inline	display:inline	fallback=cut
+x = size*n;	x = size*n;	fallback=cut
+range:n	range:n	fallback=cut
+fade_in()	fade_in()
+opt_in check_in built_in is_in	opt_in check_in built_in is_in
+erfahrene_r	erfahrene_r	fallback=cut
+Note: in	Note: in	fallback=cut
+10:00–12:30	10:00–12:30
+**fett**	**fett**
+*kursiv*	*kursiv*
+_unterstrichen_	_unterstrichen_
+Preis*	Preis*
+YouTube	YouTube
+InDesign	InDesign
+WhatsApp	WhatsApp
+Αθήνα	Αθήνα
+Москва	Москва

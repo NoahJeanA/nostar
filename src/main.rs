@@ -123,7 +123,14 @@ fn run(command: &Command, paths: &Paths) -> Result<ExitCode, Error> {
         Command::Data {
             action: DataAction::Update,
         } => nostar::cmd::data::update(paths, &config)?,
-        // Arrive with milestones 4 to 6.
+        Command::Rules {
+            action: RulesAction::Build,
+        } => return nostar::cmd::rules::build(paths, &config),
+        Command::Rules {
+            action: RulesAction::Test,
+        } => return nostar::cmd::rules::test(paths, &config),
+        Command::Show { text } => nostar::cmd::show::show(paths, &config, text)?,
+        // Arrive with milestone 6.
         _ => return Err(Error::NotImplemented(command.name())),
     }
     Ok(ExitCode::SUCCESS)

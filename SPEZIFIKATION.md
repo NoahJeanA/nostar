@@ -132,7 +132,7 @@ Diese Fälle sind Teil der Testsammlung (13.1) und müssen exakt so angezeigt we
 |---|---|---|---|
 | Fall (Kasus) aus dem Satz | mit den Lehrer\*innen | mit den Lehrer | Braucht das Wort davor; siehe 4.7 |
 | Doppelnennung | Lehrerinnen und Lehrer | unverändert | Umfasst mehrere Wörter, siehe 4.7 |
-| Neutrale Formen | Studierende | unverändert | Optional, siehe Einstellung `participles` |
+| Neutrale Formen | Studierende | unverändert | Ohne Genderzeichen müsste die Regel an einem häufigen Buchstaben ansetzen; das verlangsamt jeden Text (TECHNIK.md 9.2) |
 | Mehrteilige neutrale Pronomen | der/die/das, er/sie/es | unverändert | Keine eindeutige Zielform |
 | Weibliche Form vorne | die\*der, sie\*er | unverändert | Die Regel müsste an einem häufigen Buchstaben (`i`, `s`) ansetzen; das verlangsamt jeden Text um etwa 8 % (Spike, TECHNIK.md 9.2) |
 
@@ -145,7 +145,7 @@ Regeln, die das **vorherige Wort** einbeziehen (z.B. „den Lehrer\*innen“ →
 | Lücke | Folge |
 |---|---|
 | Wort kommt in mehreren Stücken an (teilweise fett oder verlinkt, Zeilenumbruch im Wort, ein Zeichen fehlt im Font) | Original bleibt sichtbar |
-| Weiche Trennstriche (U+00AD) im Wort, häufig auf Nachrichtenseiten | **Zu testen**, ob die Regel trotzdem greift |
+| Weiche Trennstriche (U+00AD) im Wort, häufig auf Nachrichtenseiten | Die Regel greift, der unsichtbare Trennstrich bleibt an seiner Stelle (HarfBuzz überspringt ihn beim Vergleich) |
 | Programme mit eigenen Fonts (Webfonts, Electron-Apps, PDFs) oder ohne HarfBuzz | Original bleibt sichtbar |
 | Cursor und Markieren | In umgewandelten Wörtern springt der Cursor durch ausgeblendete Zeichen |
 
@@ -324,7 +324,6 @@ Entfernt gepatchte Fonts, fontconfig-Regel, Regelliste, Manifest und Protokoll. 
 | `chars` | Aktive Genderzeichen (4.1) | `* : _ · / /-` |
 | `binnen_i` | Binnen-I für Wörterbuch-Stämme | an |
 | `fallback` | Stufe 5: `abschneiden` (Stamm ohne Genderzeichen und Endung), `zeichen` (nur Genderzeichen ausblenden), `aus` (unverändert lassen) | `abschneiden` |
-| `participles` | Neutrale Formen umwandeln (`Studierende` → `Studenten`), nur fest hinterlegte Liste | aus |
 | `skip_monospace` | Monospace-Fonts nicht patchen | aus |
 
 ## 12. Robustheit
@@ -361,7 +360,7 @@ Paare aus Eingabe und erwarteter Anzeige. Sie enthält mindestens:
 
 ## 14. Entscheidungen
 
-Punkte 1–8 entschieden am 2026-10-26, Punkte 9–11 am 2026-10-27. Technische Abweichungen von dieser Spezifikation stehen in [TECHNIK.md](TECHNIK.md), Abschnitt 15, und sind freigegeben.
+Punkte 1–8 entschieden am 2026-10-26 (Punkt 5 geändert am 2026-10-27), Punkte 9–11 am 2026-10-27. Technische Abweichungen von dieser Spezifikation stehen in [TECHNIK.md](TECHNIK.md), Abschnitt 15, und sind freigegeben.
 
 | # | Frage | Entscheidung |
 |---|---|---|
@@ -369,7 +368,7 @@ Punkte 1–8 entschieden am 2026-10-26, Punkte 9–11 am 2026-10-27. Technische 
 | 2 | Aktive Genderzeichen | `* : _ · / /-`, Binnen-I nur für Wörterbuch-Stämme |
 | 3 | Fall-Erkennung („den Lehrern“) | Nicht in Version 1 (4.7) |
 | 4 | Datenquelle | Nur Entgendert-Wörterbuch (TECHNIK.md 15, Punkt 2) |
-| 5 | Neutrale Formen („Studierende“) | Aus, optional einschaltbar; die feste Liste ist noch festzulegen |
+| 5 | Neutrale Formen („Studierende“) | Nicht in Version 1 (4.6); Einstellung `participles` entfällt; entschieden 2026-10-27 |
 | 6 | Monospace-Fonts ausnehmen | Nein; mit Wörterbuch ist das Risiko für Code gering |
 | 7 | Automatisch nach Paket-Updates neu patchen | Nein; `status` weist auf veraltete Kopien hin |
 | 8 | Programmiersprache | Rust (fontations: `read-fonts`, `write-fonts`, `skrifa`) |

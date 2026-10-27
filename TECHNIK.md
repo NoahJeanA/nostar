@@ -137,7 +137,6 @@ exclude = []                       # family names or absolute paths
 markers = ["*", ":", "_", "·", "/", "/-"]
 binnen_i = true
 fallback = "cut"                   # "cut" | "marker" | "off"
-participles = false
 skip_monospace = false
 
 [source]
@@ -159,7 +158,7 @@ Stämme mit Umlaut oder ß müssen in Anführungszeichen stehen, weil TOML nur A
 | `mode` | Enum `standard` \| `all` | |
 | `families`, `exclude` | Liste von Strings | nicht leer; Pfade müssen absolut sein |
 | `markers` | Liste aus `* : _ · / /-` | keine Duplikate, keine anderen Werte |
-| `binnen_i`, `participles`, `skip_monospace` | bool | |
+| `binnen_i`, `skip_monospace` | bool | |
 | `fallback` | Enum `cut` \| `marker` \| `off` | |
 | `source.commit` | 40 Hex-Zeichen | |
 | `source.sha256` | 64 Hex-Zeichen | |
@@ -233,14 +232,15 @@ Einträge aus `[words]` ersetzen gleichnamige Stämme aus dem Wörterbuch. Der D
 pub enum Stage { Fixed = 1, Lexicon = 2, Ending = 4, Fallback = 5 }
 pub enum Marker {
     Gender,          // one of the active markers * : _ · /
-    GenderNoSlash,   // one of the active markers * : _ · (stage 5 only)
+    GenderText,      // one of the active markers * : · (adjective ending, stage 5)
     SlashHyphen,     // Gender followed by '-'
     BinnenI,
 }
-pub enum Right { WordEnd, Any }       // Any: compound part may follow
+pub enum Left { Any, Boundary, Letter }  // Boundary: word boundary before (stage 1); Letter: a letter must precede
+pub enum Right { Letter, WordEnd, Any }  // Letter: a letter must follow; Any: compound part may follow
 pub struct Rule {
     pub stage: Stage,
-    pub left_boundary: bool,         // only stage 1: no letter before the stem
+    pub left: Left,
     pub stem: String,                // exact characters before the marker
     pub marker: Marker,
     pub suffix: String,              // "innen", "in", "r", ...
@@ -267,24 +267,36 @@ Jede Variante wird vervielfacht über:
 - **Schreibweise des Stamms:** Original (`Ärzt`), kleiner Anfang (`ärzt`, für Zusammensetzungen), Großbuchstaben (`ÄRZT`). Bei Großbuchstaben werden Endung und Ziel ebenfalls großgeschrieben.
 - **Endung mit großem I:** `innen` und `Innen`, `in` und `In`
 - **Genderzeichen:** `Gender` und, wenn `/-` aktiv ist, `SlashHyphen`
-- **Binnen-I** (wenn `binnen_i`): nur Originalschreibweise und nur für Wörterbuch-Stämme, Marker `BinnenI`, Endung `Innen`/`In`
+- **Binnen-I** (wenn `binnen_i`): nur für Wörterbuch-Stämme, in Originalschreibweise und mit kleinem Anfang (für Zusammensetzungen wie „MitarbeiterInnen“), Marker `BinnenI`, Endung `Innen`/`In`
 
-Bei `compound ≠ plural` entstehen zwei Plural-Regeln: `WordEnd` → Plural und `Any` mit Buchstaben danach → `compound`.
+Bei `compound ≠ plural` entstehen zwei Plural-Regeln: `Letter` → `compound` und `WordEnd` → Plural. Mit `Any` statt `Letter` würde die Wortende-Ausnahme der Plural-Regel die Zusammensetzung blockieren (8.5).
 
 Für Endungsregeln (Stufe 4) entstehen dieselben Varianten mit dem Endungsmuster als Stamm, aber ohne Binnen-I. Endungen mit `!` erzeugen keine Regel.
 
 Für substantivierte Adjektive (`adjectival`) entstehen in Stufe 1 die Regeln `<Wort>*r` → `<Wort>r` und `<Wort>*n` → `<Wort>n`, mit linker Grenze, in Originalschreibweise und Großbuchstaben.
 
-**Anker im Stamm nur an Umlauten:** Liegt der Anker einer Regel (9.1) im Stamm und ist er kein Umlaut (`ä ö ü Ä Ö Ü`), wird die Regel verworfen und gemeldet (`warn: rules: dropped Herzog*innen -> Herzöge: anchor 'o' is not an umlaut`). Solche Anker sind in normalem Text häufig und würden jeden Text verlangsamen (9.2). Im Wörterbuch betrifft das zwei Stämme (`Herzog` → `Herzöge`, `Kriminaler` → `Kriminale`). Sie fallen auf Endungsregel oder Rückfall zurück (Abschnitt 15, Punkt 12).
+**Feste Formen (`fixed.rs`, Stufe 1, Quelle `builtin`):** Die weibliche Form steht hinten. Jede Form mit linker Grenze und `WordEnd`, in Listenschreibweise, mit großem Anfang und in Großbuchstaben:
 
-**Stufe 5 (`fallback`)** erzeugt Regeln nur mit `GenderNoSlash`. `/` und `/-` sind ausgenommen, damit Pfade und URLs (`docs/index`, `x/in`) unberührt bleiben (Abschnitt 15, Punkt 5).
-- `cut`: Genderzeichen + `in`/`innen` (alle Schreibweisen) ausblenden, Buchstabe davor erforderlich
-- `marker`: nur das Genderzeichen ausblenden, Buchstabe davor und danach erforderlich
+| Gruppe | Formen |
+|---|---|
+| Artikel | `der*die`→der, `den*die`→den, `dem*der`→dem, `des*der`→des, `ein*e`→ein, `einem*r`→einem, `eines*r`→eines |
+| Pronomen | `er*sie`→er, `ihn*sie`→ihn, `ihm*ihr`→ihm, `sein*ihr`→sein, `seine*ihre`→seine, `seinen*ihren`→seinen, `seinem*ihrem`→seinem, `seiner*ihrer`→seiner, `seines*ihres`→seines |
+| Determinative | `kein*e`→kein, `mein*e`→mein, `dein*e`→dein, `sein*e`→sein, `unser*e`→unser, `eine*n`→einen, `keine*n`→keinen, `jede*n`→jeden, `diese*n`→diesen, `jene*n`→jenen, `welche*n`→welchen, `meine*n`→meinen, `deine*n`→deinen, `seine*n`→seinen, `unsere*n`→unseren |
+
+Dazu die Adjektivendung für jedes Wort: `e*r` → `er` (auch `E*R` → `ER`), Marker `GenderText`, `left = Letter`, `WordEnd`. Sie deckt auch `jede*r`, `keine*r`, `diese*r`, `neue*r` und `erfahrene*r` ab. Eine allgemeine Regel `e*n` gibt es nicht, weil sie Code wie `size*n` umwandeln würde; „erfahrene\*n“ bleibt daher unverändert.
+
+Bei Regeln mit linker Grenze (`left = Boundary`) gilt ein Genderzeichen mit Buchstabe dahinter (rechts) bzw. davor (links) ebenfalls als Fortsetzung des Wortes. So bleiben „der/die/das“, „das/der/die“ und „er/sie/es“ unverändert (fachl. Spezifikation 4.6).
+
+**Anker im Stamm nur an Umlauten:** Liegt der Anker einer Regel (9.1) im Stamm und ist er kein Umlaut (`ä ö ü Ä Ö Ü`), wird die Regel verworfen und gemeldet (`warn: rules: dropped Herzog*innen -> Herzöge: anchor 'o' is not an umlaut`, einmal je Stamm; die einzelnen Varianten unter `debug`). Solche Anker sind in normalem Text häufig und würden jeden Text verlangsamen (9.2). Im Wörterbuch betrifft das zwei Stämme (`Herzog` → `Herzöge`, `Kriminaler` → `Kriminale`). Sie fallen auf Endungsregel oder Rückfall zurück (Abschnitt 15, Punkt 12).
+
+**Stufe 5 (`fallback`)** erzeugt Regeln nur mit `GenderText`. `/`, `/-` und `_` sind ausgenommen, damit Pfade, URLs und Code (`docs/index`, `x/in`, `fade_in`) unberührt bleiben (Abschnitt 15, Punkt 5).
+- `cut`: Genderzeichen + `in`/`innen` (alle Schreibweisen) ausblenden, Buchstabe davor erforderlich (`left = Letter`)
+- `marker`: nur das Genderzeichen ausblenden, Buchstabe davor und danach erforderlich (`left = Letter`, `right = Letter`)
 - `off`: keine Regel
 
 ### 8.3 Minimierung
 
-Eine Stamm-Regel (Stufe 2) entfällt, wenn die Referenz-Umsetzung (8.5) **ohne** sie für ihren eigenen Quelltext dasselbe Ergebnis liefert. Geprüft wird der Quelltext mit `*` und mit `/` als Genderzeichen, bei `right = Any` zusätzlich mit angehängtem Wortteil (`…innenzimmer`). Beispiel: Die Endungsregel `er` macht „Lehrer\*innen“ ohnehin zu „Lehrer“.
+Eine Stamm-Regel (Stufe 2) entfällt, wenn die Referenz-Umsetzung (8.5) **ohne** sie für ihren eigenen Quelltext dasselbe Ergebnis liefert. Geprüft wird der Quelltext mit `*` und mit `/` als Genderzeichen, bei `right = Any` zusätzlich mit angehängtem Wortteil (`…innenzimmer`), bei `right = Letter` nur mit angehängtem Wortteil. Beispiel: Die Endungsregel `er` macht „Lehrer\*innen“ ohnehin zu „Lehrer“.
 
 Die Regeln werden **von hinten nach vorne** geprüft. So sieht jede Prüfung den endgültigen Stand aller späteren Regeln, und das Ergebnis der Referenz-Umsetzung ändert sich durch die Minimierung für keinen Text.
 
@@ -297,7 +309,7 @@ Die Minimierung läuft einmal in `rules build`. Ihr Ergebnis wird protokolliert 
 Die Regelliste ist total geordnet:
 1. nach Stufe aufsteigend
 2. innerhalb der Stufe nach Länge von `stem + marker + suffix` absteigend
-3. bei Gleichstand `right = WordEnd` vor `Any`
+3. bei Gleichstand `right = Letter` vor `WordEnd` vor `Any`
 4. dann lexikografisch (für eine stabile, vergleichbare Datei)
 
 Die Referenz-Umsetzung und der GSUB-Compiler werten dieselbe Reihenfolge aus.
@@ -310,25 +322,32 @@ Sie bildet die Arbeitsweise von HarfBuzz mit dem kompilierten Font genau nach. N
 
 1. **Zwei Pässe:** Zuerst läuft der Stamm-Pass über den ganzen Text, dann der Marker-Pass über das Ergebnis. Jede Regel gehört zu genau einem Pass (9.2).
 2. **Anker:** Innerhalb eines Passes wird der Text von links nach rechts gelesen. An jeder Position konkurrieren alle Regeln des Passes, deren Quelle so passt, dass ihr Anker (9.1) auf diese Position fällt. Die erste in Listenreihenfolge gewinnt.
-3. **Ausnahmen:** Gewinnt eine `WordEnd`-Regel, auf die ein Buchstabe folgt, oder eine Regel mit linker Grenze, vor der ein Buchstabe steht, bleibt der Text unverändert. Die Suche an diesem Anker ist trotzdem beendet.
+3. **Ausnahmen:** Gewinnt eine `WordEnd`-Regel, auf die ein Buchstabe folgt, oder eine Regel mit linker Grenze, vor der ein Buchstabe steht (bei `Boundary` auch Genderzeichen + Buchstabe, 8.2), bleibt der Text unverändert. Die Suche an diesem Anker ist trotzdem beendet. Regeln mit `Letter` links oder rechts passen dagegen nur, wenn dort ein Buchstabe steht; sonst sind sie keine Ausnahme, sondern passen nicht.
 4. **Weiter:** Nach einem Treffer oder einer Ausnahme geht es hinter der Quelle weiter.
-5. **Zeichen:** `Gender` passt auf jedes aktive Genderzeichen, `GenderNoSlash` auf jedes außer `/`. Rückfall-Regeln brauchen einen Buchstaben vor dem Genderzeichen. Kombinierende Zeichen (Kategorie Mn) werden beim Vergleich übersprungen.
+5. **Zeichen:** `Gender` passt auf jedes aktive Genderzeichen, `GenderText` auf jedes außer `/` und `_`. Rückfall-Regeln brauchen einen Buchstaben vor dem Genderzeichen. Kombinierende Zeichen (Kategorie Mn) und weiche Trennstriche (U+00AD) werden beim Vergleich übersprungen und bleiben an ihrer Stelle stehen, wie bei HarfBuzz.
 
 ### 8.6 Speicherformat `rules.tsv`
 
-UTF-8, eine Regel pro Zeile, Tab-getrennt, erste Zeile `# nostar rules v1 lexicon=<sha256> config=<sha256>`.
+UTF-8, eine Regel pro Zeile, Tab-getrennt, erste Zeile `# nostar rules v1 lexicon=<sha256> config=<sha256>`, zweite Zeile die Spaltennamen. `lexicon` ist die Prüfsumme des Wörterbuchs (`source.sha256`), `config` die SHA-256 der Einstellungen, die die Regeln beeinflussen (`markers`, `binnen_i`, `fallback`, `[words]`). Änderungen an `mode`, `families` oder `exclude` verlangen kein neues `rules build`.
 
 ```
 stage  left  stem    marker  suffix  right    target  origin
-2      0     Ärzt    gender  innen   any      Ärzte   entgendert@febca80
-2      0     Ärzt    gender  in      wordend  Arzt    entgendert@febca80
+2      any   Ärzt    gender  innen   any      Ärzte   entgendert@febca80
+2      any   Ärzt    gender  in      wordend  Arzt    entgendert@febca80
 ```
 
-Werte der Spalte `marker`: `gender`, `gender-no-slash`, `slash-hyphen`, `binnen-i`.
+Werte der Spalte `left`: `any`, `boundary`, `letter`; `right`: `letter`, `wordend`, `any`; `marker`: `gender`, `gender-text`, `slash-hyphen`, `binnen-i`; `origin`: `entgendert@<commit7>`, `config`, `builtin`.
 
 ### 8.7 Testsammlung `tests/cases.tsv`
 
-Zwei Spalten: Eingabe und erwartete Anzeige. Die Datei wird mit `include_str!` ins Programm übernommen und von `rules build`, `rules test` und der Font-Prüfung benutzt.
+Spalten: Eingabe, erwartete Anzeige und optional `needs`. Zeilen mit `#` am Anfang und leere Zeilen werden übersprungen; `\u{AD}` steht für ein unsichtbares Zeichen. Die Datei wird mit `include_str!` ins Programm übernommen und von `rules build`, `rules test` und der Font-Prüfung benutzt.
+
+Die Fälle gelten für die Voreinstellungen. Damit eine andere Konfiguration nicht an ihnen scheitert, wird ein Fall übersprungen, wenn
+- er eine Bedingung aus `needs` nicht erfüllt (durch Komma getrennt: `fallback=cut`, `fallback=marker`, `fallback=off`, `binnen_i`),
+- er umgewandelt wird und in der Eingabe ein nicht aktives Genderzeichen vorkommt,
+- seine Eingabe einen Stamm aus `[words]` enthält.
+
+Die Zahl der übersprungenen Fälle wird gemeldet.
 
 ## 9. GSUB-Kompilierung (`rules/edit.rs`, `plan.rs`, `font/compile.rs`, `font/gsub.rs`)
 
@@ -418,12 +437,13 @@ Begründung für Gate und Baum: HarfBuzz prüft an einem Anker alle Regeln, die 
 - **Klassen (Format 2):**
   - Rückblick: jeder Buchstabe eine eigene Klasse (groß/klein getrennt)
   - Eingabe im Marker-Pass: die aktiven Genderzeichen `* : _ · /` bilden **eine** Klasse, `I` und `-` je eine eigene. Die Buchstaben der Endung werden ohne Unterscheidung von Groß- und Kleinschreibung zusammengelegt, sodass eine GSUB-Regel `innen` und `Innen` abdeckt. Das spart etwa ein Drittel der GSUB-Regeln.
-  - Eingabe der Rückfall-Regeln: eigene Klassentabelle mit `* : _ ·`, ohne `/`
+  - Eingabe der Rückfall-Regeln und der Adjektivendung: eigene Klassentabelle mit `* : ·`, ohne `/` und `_`
   - Eingabe im Stamm-Pass: jedes Zeichen eine eigene Klasse
   - Vorschau: alle Buchstaben eine Klasse `LETTER`
 - **Nebenwirkung der gemeinsamen Klasse:** `SlashHyphen` passt auch auf `*-`, `:-` usw. („Kund\*-innen“ → „Kunden“). Die Referenz-Umsetzung bildet das nach (8.5).
 - **Wortende (`WordEnd`):** GSUB kann „Ende des Textes“ nicht abfragen. Deshalb steht vor jeder `WordEnd`-Regel eine Ausnahme-Regel mit gleicher Eingabe und Vorschau `LETTER`, aber ohne Aktion. HarfBuzz beendet die Suche bei der ersten passenden Regel, auch wenn sie nichts tut. Das blockiert auch spätere Regeln am selben Anker; Referenz-Umsetzung und Minimierung berücksichtigen das (8.3, 8.5).
-- **Linke Grenze (Stufe 1):** ebenso über eine vorangestellte Ausnahme mit Rückblick `LETTER`. Da der Rückblick in Format 2 eine Klasse je Buchstabe hat, steht diese Ausnahme in einem eigenen Subtable im Format 3 (Coverage `LETTER`). Ein Blatt besteht daher aus aufeinanderfolgenden Subtables im Format 2 und 3; die Reihenfolge der Regeln bleibt erhalten.
+- **`Letter` links oder rechts:** Rückblick bzw. Vorschau `LETTER` in der Regel selbst, ohne Ausnahme.
+- **Linke Grenze (Stufe 1):** ebenso über eine vorangestellte Ausnahme mit Rückblick `LETTER`, dazu Ausnahmen mit Rückblick `LETTER` + Genderzeichen und Vorschau Genderzeichen + `LETTER` (8.2). Da der Rückblick in Format 2 eine Klasse je Buchstabe hat, steht diese Ausnahme in einem eigenen Subtable im Format 3 (Coverage `LETTER`). Ein Blatt besteht daher aus aufeinanderfolgenden Subtables im Format 2 und 3; die Reihenfolge der Regeln bleibt erhalten.
 - **Positionen in `SequenceLookupRecord`:** Der Index bezieht sich auf die Glyphenfolge **nach** den vorherigen Records derselben Regel. Er wird mit einer laufenden Verschiebung berechnet: `Delete` −1, `Replace(s)` +len(s)−1.
 - **Lookup-Flag:** `IgnoreMarks` für Gate, Knoten und Blätter; Hilfs-Lookups ohne Flag
 - **Doppelte Regeln:** Eine GSUB-Regel mit denselben Bedingungen wie eine frühere im selben Blatt wird weggelassen; sie könnte nie greifen.
@@ -496,7 +516,7 @@ $ nostar show "Die Ärzt*innen und jede*r Kolleg*in"
 Die Ärzte und jeder Kollege
   Ärzt*innen  -> Ärzte    stage 2  entgendert@febca80
   jede*r      -> jeder    stage 1  builtin
-  Kolleg*in   -> Kollege  stage 2  entgendert@febca80
+  Kolleg*in   -> Kollege  stage 4  entgendert@febca80
 ```
 
 Beispielausgabe `apply`:
@@ -637,7 +657,7 @@ Die Testsammlung `tests/cases.tsv` (8.7) setzt fachl. Spezifikation 13.1 um.
 
 ## 15. Abweichungen von der fachlichen Spezifikation
 
-Punkte 1–11 freigegeben am 2026-10-26, Punkte 12–13 am 2026-10-27. Wo sie gelten, ist diese Spezifikation maßgeblich.
+Punkte 1–11 freigegeben am 2026-10-26 (Punkt 5 geändert am 2026-10-27), Punkte 12–13 am 2026-10-27. Wo sie gelten, ist diese Spezifikation maßgeblich.
 
 | # | Fachliche Spezifikation | Hier | Grund |
 |---|---|---|---|
@@ -645,7 +665,7 @@ Punkte 1–11 freigegeben am 2026-10-26, Punkte 12–13 am 2026-10-27. Wo sie ge
 | 2 | german-nouns als zweite Quelle | nur Entgendert | german-nouns enthält keine Fugenformen und keine männlich/weiblich-Paare; Entgendert ist bereits daraus erzeugt |
 | 3 | Endungsregeln selbst ableiten (≥ 98 %) | aus Entgendert übernehmen | Dort mit demselben Verfahren abgeleitet (98,8 %); eigene Ableitung wäre doppelter Code |
 | 4 | Stufen 2 und 3 getrennt | zusammengelegt (8.1) | Gleiches Ergebnis, eine Regel statt zwei |
-| 5 | Rückfall für alle Genderzeichen | nicht für `/` und `/-` | Schutz von Pfaden und URLs |
+| 5 | Rückfall für alle Genderzeichen | nicht für `/`, `/-` und `_` | Schutz von Pfaden, URLs und Code (`fade_in`) |
 | 6 | Ergänzungen in eigener Datei `~/.config/nostar/ergaenzungen` | Abschnitt `[words]` in `config.toml` | Eine Datei weniger, Vorgabe TOML |
 | 7 | Konfiguration `~/.config/nostar/config` | `config.toml` | TOML |
 | 8 | Konfigurationswerte deutsch (`alle`, `abschneiden`, `zeichen`, `aus`) | englisch (`all`, `cut`, `marker`, `off`) | Vorgabe: Code auf Englisch |
@@ -655,7 +675,7 @@ Punkte 1–11 freigegeben am 2026-10-26, Punkte 12–13 am 2026-10-27. Wo sie ge
 | 12 | Alle Wörterbuch-Stämme in Stufe 2 | Regeln, die einen Stammbuchstaben außer einem Umlaut ändern, werden verworfen (8.2); betrifft `Herzog` und `Kriminaler` | Ihr Anker (`o`, `r`) würde jeden Text um 4–14 % verlangsamen |
 | 13 | `/-` nur nach `/` | Auch `*-`, `:-`, `_-`, `·-` werden erkannt (9.4) | Gemeinsame Glyphenklasse aller Genderzeichen; spart Regeln und Lookups |
 
-Ergänzung zu Punkt 3: `rules build` meldet die Trefferquote jeder übernommenen Endungsregel auf dem Wörterbuch (`info`) und warnt bei weniger als 98 % (`warn`).
+Ergänzung zu Punkt 3: `rules build` meldet die Trefferquote jeder übernommenen Endungsregel auf dem Wörterbuch (`info`). Sie liegt unter dem Wert von Entgendert, weil das Wörterbuch ein Ausschnitt ist (regelmäßige Zusammensetzungen fehlen); deshalb keine Warnung.
 
 ## 16. Quellen
 

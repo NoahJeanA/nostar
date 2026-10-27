@@ -1,6 +1,7 @@
 //! Dictionary model (TECHNIK.md 7.3) plus own words from `[words]`.
 
 use std::collections::BTreeMap;
+use std::fmt;
 
 use crate::config::Word;
 
@@ -29,6 +30,20 @@ pub enum Origin {
     Entgendert { commit: String },
     Config,
     Builtin,
+}
+
+/// `entgendert@febca80`, `config`, `builtin` (TECHNIK.md 8.6).
+impl fmt::Display for Origin {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Entgendert { commit } => {
+                let short: String = commit.chars().take(7).collect();
+                write!(f, "entgendert@{short}")
+            }
+            Self::Config => f.write_str("config"),
+            Self::Builtin => f.write_str("builtin"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

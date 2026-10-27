@@ -15,9 +15,9 @@
  * nostar test fixture: excerpt of Entgendert commit febca802f868 (extension/dictionary.js).
  */
 globalThis.EntgendertDictionary = Object.freeze({
-  counts: Object.freeze({"persons":15,"adjectives":3}),
-  irregular: "Abiturient,,+en;Beamt,+er,Beamte,+n,a;Brit,+e,+n;Bäuer,Bauer,+n;Freund,,+e,+n;Herzog,,Herzöge,+n;Kolleg,+e,+n;Kriminaler,,Kriminale,+n,a;Kund,+e,+n;Ober,+er,Obere,+n,a;Ärzt,Arzt,Ärzte,+n",
-  regular: "Aachener;Bürger;Lehrer;Österreicher",
-  adjectival: "Abgeordnete;Angestellte;Vorsitzende",
-  rules: "eg=e,en,en;er=,,n;it=,en,en;nt=,en,en;ier=!;auer=,,n"
+  counts: Object.freeze({"persons":44,"adjectives":6}),
+  irregular: "Abiturient,,+en;As,+e,+n;Autor,,+en;Beamt,+er,Beamte,+n,a;Brit,+e,+n;Bäuer,Bauer,+n;Bürg,+e,+n;Enz,+e,+n;Est,+e,+n;Expert,+e,+n;Freund,,+e,+n;Herzog,,Herzöge,+n;Ingenieur,,+e,+n;Ir,+e,+n;Journalist,,+en;Kolleg,+e,+n;Kriminaler,,Kriminale,+n,a;Kund,+e,+n;Kur,+e,+n;Nenz,+e,+n;Ober,+er,Obere,+n,a;Pat,+e,+n;Pol,+e,+n;Polizist,,+en;Student,,+en;Tat,+e,+s;Zimmer,+er,,+n;Ärzt,Arzt,Ärzte,+n",
+  regular: "Aachener;Antragsteller;Arbeiter;Bürger;Entwickler;Influencer;Lehrer;Leser;Müller;Nutzer;Partner;Pfleger;Schüler;Teilnehmer;Wissenschaftler;Österreicher",
+  adjectival: "Abgeordnete;Alte;Angestellte;Linke;Studierende;Vorsitzende",
+  rules: "af=,en,en;eb=,e,en;ef=,s,s;eg=e,en,en;en=e,en,en;er=,,n;es=e,en,en;it=,en,en;nt=,en,en;og=e,en,en;or=,en,en;ph=,en,en;rb=e,en,en;ss=e,en,en;st=,en,en;ug=e,en,en;ur=,e,en;är=,e,en;and=,en,en;art=,e,en;dat=,en,en;eld=,en,en;err=,en,en;ert=e,en,en;hrt=e,en,en;ier=!;let=,en,en;lot=,en,en;man=e,en,en;rat=,en,en;uer=!;ütz=e,en,en;auer=,,n;eund=,e,en;lder=!;mmer=!;rder=!;tter=!;wirt=,e,en;atter=,,n;eiger=!;örder=,,n"
 });
