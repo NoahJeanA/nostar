@@ -40,11 +40,12 @@ Schritte 1–3 laufen einmal je Daten- oder Regeländerung, Schritte 4–6 bei `
 
 ## 3. Module und Zuständigkeiten
 
-Ein einziges Crate (`nostar`, Binary). Keine Workspace-Aufteilung.
+Ein einziges Crate (`nostar`) mit Bibliothek und Binary, keine Workspace-Aufteilung. `lib.rs` bindet alle Module ein, damit die Integrationstests in `tests/` sie erreichen; `main.rs` enthält nur die CLI.
 
 ```
 src/
 ├── main.rs            CLI-Definition, Befehlsaufruf, Exit-Codes
+├── lib.rs             Modulbaum, Typ `Error`
 ├── config.rs          config.toml lesen und prüfen
 ├── paths.rs           alle Pfade (XDG)
 ├── log.rs             Logger (stderr + Datei)
@@ -150,6 +151,8 @@ singular = "Freund"
 plural = "Freunde"
 compound = "Freundes"              # optional, default: plural
 ```
+
+Stämme mit Umlaut oder ß müssen in Anführungszeichen stehen, weil TOML nur ASCII-Schlüssel ohne Anführungszeichen erlaubt: `[words."Ärzt"]`.
 
 | Schlüssel | Typ | Prüfung |
 |---|---|---|
@@ -542,7 +545,7 @@ Was protokolliert wird:
 
 ## 12. Fehler
 
-- Ein Fehlertyp je Modul mit `thiserror`. `main.rs` hat einen Typ `Error`, der diese über `#[from]` zusammenfasst und auf Exit-Codes abbildet.
+- Ein Fehlertyp je Modul mit `thiserror`. `lib.rs` hat einen Typ `Error`, der diese über `#[from]` zusammenfasst; `main.rs` bildet ihn auf Exit-Codes ab.
 - Meldungen: Englisch, kleingeschrieben, ohne Punkt am Ende, mit dem konkreten Objekt (Pfad, Wert, Fall). Keine Füllwörter wie „failed to“, „an error occurred“, „unable to“, „please“.
 - Ausgabe auf stderr: `error: <modul>: <meldung>`, darunter Ursachen mit `  caused by: …`.
 - Kein `unwrap`/`expect` außerhalb von Tests.
