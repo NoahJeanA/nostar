@@ -145,7 +145,7 @@ Regeln, die das **vorherige Wort** einbeziehen (z.B. „den Lehrer\*innen“ →
 | Lücke | Folge |
 |---|---|
 | Wort kommt in mehreren Stücken an (teilweise fett oder verlinkt, Zeilenumbruch im Wort, ein Zeichen fehlt im Font) | Original bleibt sichtbar |
-| Weiche Trennstriche (U+00AD) im Wort, häufig auf Nachrichtenseiten | Die Regel greift, der unsichtbare Trennstrich bleibt an seiner Stelle (HarfBuzz überspringt ihn beim Vergleich) |
+| Weiche Trennstriche (U+00AD) im Wort, häufig auf Nachrichtenseiten | Die Regel greift, der unsichtbare Trennstrich bleibt an seiner Stelle (HarfBuzz überspringt ihn beim Vergleich). Steht er direkt am Wortende („Lehrer\*in\u00AD“), bleibt die Form unverändert. |
 | Programme mit eigenen Fonts (Webfonts, Electron-Apps, PDFs) oder ohne HarfBuzz | Original bleibt sichtbar |
 | Cursor und Markieren | In umgewandelten Wörtern springt der Cursor durch ausgeblendete Zeichen |
 

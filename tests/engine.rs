@@ -68,3 +68,13 @@ fn own_words_win() {
         "Freundeskreis, Freunde"
     );
 }
+
+#[test]
+fn unchanged_corpus_stays() {
+    let config = Config::default();
+    let lexicon = source::parse(FIXTURE, "dictionary.js", COMMIT).unwrap();
+    let set = build::build(&lexicon, &config);
+    for line in nostar::font::verify::UNCHANGED {
+        assert_eq!(set.render(line), *line);
+    }
+}

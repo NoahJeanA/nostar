@@ -138,10 +138,18 @@ Ein*e Beamt*in prüft den Antrag.	Ein Beamter prüft den Antrag.
 Die Influencer*innen	Die Influencer
 
 # soft hyphens (4.8)
+# HarfBuzz skips them inside a form and keeps them in place; at the word end they count
+# as a letter.
 Leh\u{AD}rer*in\u{AD}nen	Leh\u{AD}rer\u{AD}
 Bür\u{AD}ger*in\u{AD}nen	Bür\u{AD}ger\u{AD}
+Ärz\u{AD}t*in\u{AD}nen	Ärz\u{AD}te\u{AD}
 Ärz\u{AD}t*innen	Ärz\u{AD}te
 Ärz\u{AD}t*in	Arz\u{AD}t
+Kol\u{AD}le\u{AD}g*in	Kol\u{AD}le\u{AD}ge
+Lehrer*in\u{AD}	Lehrer*in\u{AD}
+
+# combining marks are skipped (IgnoreMarks)
+Lehre\u{301}r*innen	Lehre\u{301}r
 
 # must stay unchanged: code, URLs, times, Markdown, footnotes, product names
 a*b	a*b	fallback=cut

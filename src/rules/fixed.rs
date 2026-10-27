@@ -61,38 +61,35 @@ pub fn forms() -> Vec<Rule> {
     rules
 }
 
-/// `<word>*r` and `<word>*n` for nominalised adjectives, as written and in capitals.
+/// `<word>*n` for nominalised adjectives, as written and in capitals, without left
+/// boundary; `<word>*r` is covered by the adjective ending `e*r`. Boundary exceptions
+/// for all of them would not fit into the GSUB (TECHNIK.md 9.3).
 pub fn adjectival(words: &[String], origin: &Origin) -> Vec<Rule> {
     let mut rules = Vec::new();
     for w in words {
-        for suffix in ["r", "n"] {
-            rules.push(boundary_rule(
-                w.clone(),
-                suffix.into(),
-                format!("{w}{suffix}"),
-                origin.clone(),
-            ));
-            let upper = w.to_uppercase();
-            let s = suffix.to_uppercase();
-            rules.push(boundary_rule(
-                upper.clone(),
-                s.clone(),
-                format!("{upper}{s}"),
-                origin.clone(),
-            ));
+        for (stem, suffix) in [(w.clone(), "n"), (w.to_uppercase(), "N")] {
+            rules.push(Rule {
+                left: Left::Any,
+                ..boundary_rule(
+                    stem.clone(),
+                    suffix.into(),
+                    format!("{stem}{suffix}"),
+                    origin.clone(),
+                )
+            });
         }
     }
     rules
 }
 
-/// `e*r` -> `er` after any letter, only with `GenderText`. `e*n` would turn code like
-/// `size*n` into `sizen`; the determiners with `*n` are fixed forms instead.
+/// `e*r` -> `er`, only with `GenderText`. `e*n` would turn code like `size*n` into
+/// `sizen`; the determiners with `*n` are fixed forms instead.
 pub fn adjective_endings() -> Vec<Rule> {
     [("e", "r"), ("E", "R")]
         .into_iter()
         .map(|(stem, suffix)| Rule {
             stage: Stage::Fixed,
-            left: Left::Letter,
+            left: Left::Any,
             stem: stem.into(),
             marker: Marker::GenderText,
             suffix: suffix.into(),

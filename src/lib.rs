@@ -5,10 +5,12 @@
 
 pub mod cmd;
 pub mod config;
+pub mod font;
 pub mod fsutil;
 pub mod lexicon;
 pub mod log;
 pub mod paths;
+pub mod plan;
 pub mod rules;
 pub mod source;
 

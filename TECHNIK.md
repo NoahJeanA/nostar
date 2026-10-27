@@ -79,10 +79,10 @@ src/
     └── remove.rs      nostar remove
 tests/
 ├── cases.tsv          Testsammlung (SPEZIFIKATION 13.1)
-├── fixtures/          kleiner Latin-Font (OFL) für Font-Tests
+├── fixtures/          Wörterbuch-Ausschnitt; Latin-Teilmengen von Noto Sans, Adwaita Sans, Rubik (OFL) für Font-Tests
 ├── engine.rs          Regelliste gegen cases.tsv
 ├── font.rs            Patch + Prüfung am Fixture-Font
-└── bench/             Referenztexte für die Geschwindigkeit (prose.txt, code.txt, marked.txt)
+└── bench/             Referenztexte für die Geschwindigkeit (prose.txt, code.txt; marked.txt erzeugt bench.sh)
 tools/
 ├── hbcmp.c            Messwerkzeug: zwei Fonts abwechselnd mit HarfBuzz (C) formen
 └── bench.sh           Fonts patchen und gegen fachl. Spezifikation 8.3 messen
@@ -273,7 +273,7 @@ Bei `compound ≠ plural` entstehen zwei Plural-Regeln: `Letter` → `compound` 
 
 Für Endungsregeln (Stufe 4) entstehen dieselben Varianten mit dem Endungsmuster als Stamm, aber ohne Binnen-I. Endungen mit `!` erzeugen keine Regel.
 
-Für substantivierte Adjektive (`adjectival`) entstehen in Stufe 1 die Regeln `<Wort>*r` → `<Wort>r` und `<Wort>*n` → `<Wort>n`, mit linker Grenze, in Originalschreibweise und Großbuchstaben.
+Für substantivierte Adjektive (`adjectival`) entsteht in Stufe 1 die Regel `<Wort>*n` → `<Wort>n`, ohne linke Grenze, in Originalschreibweise und Großbuchstaben. `<Wort>*r` deckt die Adjektivendung `e*r` ab. Ausnahmen für die linke Grenze bei allen 700 Regeln würden die GSUB nicht mehr schreibbar machen (9.3).
 
 **Feste Formen (`fixed.rs`, Stufe 1, Quelle `builtin`):** Die weibliche Form steht hinten. Jede Form mit linker Grenze und `WordEnd`, in Listenschreibweise, mit großem Anfang und in Großbuchstaben:
 
@@ -283,7 +283,7 @@ Für substantivierte Adjektive (`adjectival`) entstehen in Stufe 1 die Regeln `<
 | Pronomen | `er*sie`→er, `ihn*sie`→ihn, `ihm*ihr`→ihm, `sein*ihr`→sein, `seine*ihre`→seine, `seinen*ihren`→seinen, `seinem*ihrem`→seinem, `seiner*ihrer`→seiner, `seines*ihres`→seines |
 | Determinative | `kein*e`→kein, `mein*e`→mein, `dein*e`→dein, `sein*e`→sein, `unser*e`→unser, `eine*n`→einen, `keine*n`→keinen, `jede*n`→jeden, `diese*n`→diesen, `jene*n`→jenen, `welche*n`→welchen, `meine*n`→meinen, `deine*n`→deinen, `seine*n`→seinen, `unsere*n`→unseren |
 
-Dazu die Adjektivendung für jedes Wort: `e*r` → `er` (auch `E*R` → `ER`), Marker `GenderText`, `left = Letter`, `WordEnd`. Sie deckt auch `jede*r`, `keine*r`, `diese*r`, `neue*r` und `erfahrene*r` ab. Eine allgemeine Regel `e*n` gibt es nicht, weil sie Code wie `size*n` umwandeln würde; „erfahrene\*n“ bleibt daher unverändert.
+Dazu die Adjektivendung für jedes Wort: `e*r` → `er` (auch `E*R` → `ER`), Marker `GenderText`, `left = Any`, `WordEnd`. Sie deckt auch `jede*r`, `keine*r`, `diese*r`, `neue*r` und `erfahrene*r` ab. Eine allgemeine Regel `e*n` gibt es nicht, weil sie Code wie `size*n` umwandeln würde; „erfahrene\*n“ bleibt daher unverändert.
 
 Bei Regeln mit linker Grenze (`left = Boundary`) gilt ein Genderzeichen mit Buchstabe dahinter (rechts) bzw. davor (links) ebenfalls als Fortsetzung des Wortes. So bleiben „der/die/das“, „das/der/die“ und „er/sie/es“ unverändert (fachl. Spezifikation 4.6).
 
@@ -302,7 +302,7 @@ Die Regeln werden **von hinten nach vorne** geprüft. So sieht jede Prüfung den
 
 Die Minimierung muss die Semantik von GSUB nachbilden, nicht eine vereinfachte. Eine Wortende-Ausnahme (9.4) blockiert auch spätere Regeln am selben Anker. Beispiel: Ohne die Plural-Regel `Brit*innen` würde „Brit\*innen“ an der Ausnahme von `Brit*in` hängen bleiben und **nicht** die Endungsregel `it` erreichen.
 
-Die Minimierung läuft einmal in `rules build`. Ihr Ergebnis wird protokolliert (`rules: minimized 53578 -> 14308 rules`, Werte aus dem Spike mit dem Wörterbuch `febca80`).
+Die Minimierung läuft einmal in `rules build`. Ihr Ergebnis wird protokolliert (`rules: minimized 57333 -> 15071 rules` mit dem Wörterbuch `febca80`).
 
 ### 8.4 Reihenfolge
 
@@ -324,7 +324,7 @@ Sie bildet die Arbeitsweise von HarfBuzz mit dem kompilierten Font genau nach. N
 2. **Anker:** Innerhalb eines Passes wird der Text von links nach rechts gelesen. An jeder Position konkurrieren alle Regeln des Passes, deren Quelle so passt, dass ihr Anker (9.1) auf diese Position fällt. Die erste in Listenreihenfolge gewinnt.
 3. **Ausnahmen:** Gewinnt eine `WordEnd`-Regel, auf die ein Buchstabe folgt, oder eine Regel mit linker Grenze, vor der ein Buchstabe steht (bei `Boundary` auch Genderzeichen + Buchstabe, 8.2), bleibt der Text unverändert. Die Suche an diesem Anker ist trotzdem beendet. Regeln mit `Letter` links oder rechts passen dagegen nur, wenn dort ein Buchstabe steht; sonst sind sie keine Ausnahme, sondern passen nicht.
 4. **Weiter:** Nach einem Treffer oder einer Ausnahme geht es hinter der Quelle weiter.
-5. **Zeichen:** `Gender` passt auf jedes aktive Genderzeichen, `GenderText` auf jedes außer `/` und `_`. Rückfall-Regeln brauchen einen Buchstaben vor dem Genderzeichen. Kombinierende Zeichen (Kategorie Mn) und weiche Trennstriche (U+00AD) werden beim Vergleich übersprungen und bleiben an ihrer Stelle stehen, wie bei HarfBuzz.
+5. **Zeichen:** `Gender` passt auf jedes aktive Genderzeichen, `GenderText` auf jedes außer `/` und `_`. Rückfall-Regeln brauchen einen Buchstaben vor dem Genderzeichen. Kombinierende Zeichen (Kategorie Mn) werden beim Vergleich übersprungen und bleiben an ihrer Stelle stehen (`IgnoreMarks`). Weiche Trennstriche (U+00AD) behandelt HarfBuzz als „vielleicht überspringen“: Passt das Zeichen an einer Stelle, wird es verwendet, sonst übersprungen. Da es in der Klasse `LETTER` steht, zählt es an Wortgrenzen als Buchstabe; innerhalb von Stamm und Endung wird es übersprungen und bleibt stehen. Für den Buchstaben, den das Marker-Gate vor dem Genderzeichen verlangt, wird es übersprungen. Im Marker-Pass werden Buchstaben nach dem Anker ohne Unterscheidung von Groß- und Kleinschreibung verglichen, wie die zusammengelegten Klassen im Font (9.4); `Kolleg*INNEN` trifft also die Regel für `Kolleg*innen`.
 
 ### 8.6 Speicherformat `rules.tsv`
 
@@ -412,7 +412,7 @@ Baum-Knoten  (Typ 6, Format 2)
   ├── je weiterem Buchstaben Y links davon: Rückblick = Y X → Kind (Knoten oder Blatt)
   └── Rückblick = X → Blatt „other“ dieses Knotens
 Blatt  (Typ 6, Formate 2 und 3)
-  └── höchstens 24 Regeln in Listenreihenfolge, die Rückfall-Regeln am Ende
+  └── höchstens 40 Regeln in Listenreihenfolge, die Rückfall-Regeln am Ende
       → je Position: Deumlaut-, Replace_k- oder Delete-Lookup
 Hilfs-Lookups (nur über Blätter erreichbar)
   ├── Delete     (Typ 2): Glyphe → leere Folge
@@ -420,7 +420,7 @@ Hilfs-Lookups (nur über Blätter erreichbar)
   └── Replace_k  (Typ 2): Glyphe → Folge; so gepackt, dass jede Glyphe je Lookup höchstens eine Folge hat
 ```
 
-**Baum:** Der Schlüssel einer Regel ist ihr Rückblick, also der Stamm von rechts nach links gelesen. Auf Tiefe d werden die Regeln nach dem d-ten Schlüsselzeichen verteilt. Regeln mit kürzerem Schlüssel kommen in jedes Kind und in „other“, ihre Reihenfolge bleibt erhalten. Kinder, die zusammen mit „other“ nicht mehr als 24 Regeln haben, werden in „other“ zusammengelegt, kleinste zuerst; jede Regel prüft dort ihren vollen Kontext selbst. Eine Gruppe mit höchstens 24 Regeln, oder ohne weiter verteilbaren Schlüssel, wird ein Blatt.
+**Baum:** Der Schlüssel einer Regel ist ihr Rückblick, also der Stamm von rechts nach links gelesen. Auf Tiefe d werden die Regeln nach dem d-ten Schlüsselzeichen verteilt. Regeln mit kürzerem Schlüssel kommen in jedes Kind und in „other“, ihre Reihenfolge bleibt erhalten. Kinder, die zusammen mit „other“ nicht mehr als 40 Regeln haben, werden in „other“ zusammengelegt, kleinste zuerst; jede Regel prüft dort ihren vollen Kontext selbst. Eine Gruppe mit höchstens 40 Regeln, oder ohne weiter verteilbaren Schlüssel, wird ein Blatt.
 
 Ein lineares Dispatch-Lookup je letztem Stammbuchstaben (Entwurf 1) war im Spike 12- bis 130-mal langsamer bei Text mit Genderformen.
 
@@ -430,21 +430,20 @@ Ein lineares Dispatch-Lookup je letztem Stammbuchstaben (Entwurf 1) war im Spike
 
 Begründung für Gate und Baum: HarfBuzz prüft an einem Anker alle Regeln, die mit diesem Anker beginnen, nacheinander. Ohne Gate wären das an jedem `*`, `:` oder `/` über zehntausend Regeln. Das Gate verwirft Anker ohne Buchstaben davor und danach (z.B. `5 * 3`, `https://`) mit wenigen Vergleichen, der Baum führt in wenigen Schritten zu einem kleinen Blatt.
 
-**Umfang mit dem Wörterbuch (Spike):** 14.308 Regeln ergeben 18.708 GSUB-Regeln in 618 Knoten und 1.609 Blättern, insgesamt 2.246 Lookups. Ab etwa 5.000 Lookups lässt sich die GSUB nicht mehr schreiben (16-Bit-Offsets). Wird die Grenze überschritten, meldet `apply` den Font als `failed`.
+**Umfang mit dem Wörterbuch `febca80`:** 15.071 Regeln ergeben 25.212 GSUB-Regeln (mit den Kopien in den Blättern) in 1.491 Lookups und 1.894 Subtables, +1,1 MB je Font. Lookup-Tabellen und Extension-Subtables müssen zusammen in die 16-Bit-Offsets der Lookup-Liste passen. Mit Blättern zu 24 Regeln und linker Grenze für alle Adjektivregeln waren es 4.071 Lookups und 11.565 Subtables; das ließ sich nicht schreiben. Wird die Grenze überschritten, meldet `apply` den Font als `failed`.
 
 ### 9.4 Regel-Details
 
 - **Klassen (Format 2):**
   - Rückblick: jeder Buchstabe eine eigene Klasse (groß/klein getrennt)
-  - Eingabe im Marker-Pass: die aktiven Genderzeichen `* : _ · /` bilden **eine** Klasse, `I` und `-` je eine eigene. Die Buchstaben der Endung werden ohne Unterscheidung von Groß- und Kleinschreibung zusammengelegt, sodass eine GSUB-Regel `innen` und `Innen` abdeckt. Das spart etwa ein Drittel der GSUB-Regeln.
-  - Eingabe der Rückfall-Regeln und der Adjektivendung: eigene Klassentabelle mit `* : ·`, ohne `/` und `_`
+  - Eingabe im Marker-Pass: die aktiven Genderzeichen bilden zwei Klassen, `* : ·` und `/ _` (dazu `/` allein, wenn nur `/-` aktiv ist); `Gender` ist eine der beiden, `GenderText` nur die erste. So teilen Marker-, Rückfall- und Adjektivregeln eine Klassentabelle und einen Subtable je Blatt. `I` und `-` haben je eine eigene Klasse. Die Buchstaben der Endung werden ohne Unterscheidung von Groß- und Kleinschreibung zusammengelegt, sodass eine GSUB-Regel `innen` und `Innen` abdeckt; die Referenz-Umsetzung vergleicht ebenso (8.5).
   - Eingabe im Stamm-Pass: jedes Zeichen eine eigene Klasse
-  - Vorschau: alle Buchstaben eine Klasse `LETTER`
+  - Vorschau: alle Buchstaben und U+00AD eine Klasse `LETTER` (8.5); im Rückblick des Marker-Gates fehlt U+00AD
 - **Nebenwirkung der gemeinsamen Klasse:** `SlashHyphen` passt auch auf `*-`, `:-` usw. („Kund\*-innen“ → „Kunden“). Die Referenz-Umsetzung bildet das nach (8.5).
 - **Wortende (`WordEnd`):** GSUB kann „Ende des Textes“ nicht abfragen. Deshalb steht vor jeder `WordEnd`-Regel eine Ausnahme-Regel mit gleicher Eingabe und Vorschau `LETTER`, aber ohne Aktion. HarfBuzz beendet die Suche bei der ersten passenden Regel, auch wenn sie nichts tut. Das blockiert auch spätere Regeln am selben Anker; Referenz-Umsetzung und Minimierung berücksichtigen das (8.3, 8.5).
-- **`Letter` links oder rechts:** Rückblick bzw. Vorschau `LETTER` in der Regel selbst, ohne Ausnahme.
+- **`Letter` links oder rechts:** Rückblick bzw. Vorschau `LETTER` in der Regel selbst, ohne Ausnahme. Bei leerem Stamm (Rückfall) entfällt der Rückblick, weil das Marker-Gate den Buchstaben schon verlangt; die Regel bleibt so im Format 2.
 - **Linke Grenze (Stufe 1):** ebenso über eine vorangestellte Ausnahme mit Rückblick `LETTER`, dazu Ausnahmen mit Rückblick `LETTER` + Genderzeichen und Vorschau Genderzeichen + `LETTER` (8.2). Da der Rückblick in Format 2 eine Klasse je Buchstabe hat, steht diese Ausnahme in einem eigenen Subtable im Format 3 (Coverage `LETTER`). Ein Blatt besteht daher aus aufeinanderfolgenden Subtables im Format 2 und 3; die Reihenfolge der Regeln bleibt erhalten.
-- **Positionen in `SequenceLookupRecord`:** Der Index bezieht sich auf die Glyphenfolge **nach** den vorherigen Records derselben Regel. Er wird mit einer laufenden Verschiebung berechnet: `Delete` −1, `Replace(s)` +len(s)−1.
+- **Positionen in `SequenceLookupRecord`:** Die Records stehen von der letzten zur ersten Position, jeder mit dem Index seiner Position in der Eingabe. HarfBuzz lässt die Positionen vor einer geänderten Glyphe unverändert. Eine laufende Verschiebung (Entwurf 1) traf nach einem übersprungenen Zeichen (U+00AD) die falsche Glyphe.
 - **Lookup-Flag:** `IgnoreMarks` für Gate, Knoten und Blätter; Hilfs-Lookups ohne Flag
 - **Doppelte Regeln:** Eine GSUB-Regel mit denselben Bedingungen wie eine frühere im selben Blatt wird weggelassen; sie könnte nie greifen.
 - **Größe:** Alle Lookups werden als Extension (Typ 7) geschrieben, auch die bestehenden des Fonts (9.5). Ein Subtable wird geteilt, bevor er etwa 40 KiB erreicht. Die Teile behalten die Reihenfolge. HarfBuzz probiert Subtables der Reihe nach, die Semantik bleibt also gleich.
@@ -472,21 +471,21 @@ Setzt fachl. Spezifikation 8.4 um. Für jeden gepatchten Font mit `harfrust`:
 | **Umwandlung** | Für jeden Fall aus `cases.tsv`: Formung der Eingabe mit der **Kopie** = Formung der erwarteten Anzeige mit dem **Original** (gleiche Glyphen-IDs und Vorschübe) |
 | **Unverändert** | Ein fester Korpus ohne Genderformen (Latein, Griechisch, Kyrillisch, Code, URLs, Uhrzeiten) ergibt in Original und Kopie identische Glyphen und Vorschübe |
 
-Schlägt eine Prüfung fehl, wird die Kopie gelöscht und der Font als `failed` mit dem ersten abweichenden Fall gemeldet.
+Fälle mit einem Zeichen ohne Glyphe im Font (z.B. U+00AD) und Fälle mit fehlenden Genderzeichen (fachl. Spezifikation 7.2) werden für diesen Font übersprungen. Schlägt eine Prüfung fehl, wird die Kopie gelöscht und der Font als `failed` mit dem ersten abweichenden Fall gemeldet.
 
 ### 9.7 Geschwindigkeit
 
 Gemessen wird mit HarfBuzz (C), nicht mit harfrust: harfrust ist etwa 1,6-mal langsamer und gibt die Verhältnisse in Programmen nicht wieder. Das Messwerkzeug ist ein Entwicklerwerkzeug und kein Teil von `nostar` (14.1).
 
-Spike-Werte, Mehraufwand gegenüber dem Original je MB Text:
+Messwerte mit `tools/bench.sh` (Meilenstein 5, 2026-10-27), Mehraufwand gegenüber dem Original je MB Text:
 
 | Font | Prosa (dt.) | Code | mit Genderformen |
 |---|---|---|---|
-| Noto Sans | +14 ms | +26 ms | +68 ms |
-| Adwaita Sans | +13 ms | +29 ms | +60 ms |
-| JetBrains Mono | +14 ms | +27 ms | +56 ms |
+| Noto Sans | +14 ms | +26 ms | +36 ms |
+| Adwaita Sans | +13 ms | +27 ms | +32 ms |
+| JetBrains Mono | +13 ms | +29 ms | +29 ms |
 
-Grenzen: fachl. Spezifikation 8.3. Die Werte sind ohne Stamm-Anker außerhalb von Umlauten (8.2) gemessen. Mit diesen Ankern lag Prosa bei +19 bis +21 ms je MB. Prosa: Texte der deutschen GNOME-Hilfe (840 KB, 1,3 % Umlaute), hochgerechnet auf 1 MB.
+Grenzen: fachl. Spezifikation 8.3. Prosa: deutsche GNOME-Hilfe (619 KB, 1,4 % Umlaute), Code: Python-Standardbibliothek (1 MB), Genderformen: Prosa, jede zweite Zeile mit drei Wörterbuchformen. Rauschen etwa ±3 ms je MB. Im Spike lag Prosa mit Stamm-Ankern außerhalb von Umlauten bei +19 bis +21 ms je MB (8.2).
 
 ## 10. Befehle
 
@@ -631,15 +630,15 @@ Setzt fachl. Spezifikation 13 um.
 |---|---|---|---|
 | Unit | jeweils im Modul | decode (7.2), Edit-Skripte (9.1), Klassenbildung, Index-Verschiebung (9.5), Konfigprüfung | `cargo test` |
 | Regeln | `tests/engine.rs` | Referenz-Umsetzung (8.5) mit festem Wörterbuch-Ausschnitt gegen `cases.tsv` | `cargo test`, `nostar rules build`, `nostar rules test` |
-| Font | `tests/font.rs` | Fixture-Font patchen, Prüfung 9.6 muss bestehen; Font ohne GSUB; variabler Font | `cargo test` |
+| Font | `tests/font.rs` | Fixture-Fonts patchen, Prüfung 9.6 muss bestehen: Noto Sans (Ligaturen), Font ohne GSUB, Adwaita Sans (variabel, eigenes `calt`), Rubik (variabel, Feature-Variationen) | `cargo test` |
 | Font im Betrieb | `verify.rs` | Prüfung 9.6 an jedem gepatchten Font | `nostar apply` |
 | Font mit Wörterbuch | `tests/font.rs`, `#[ignore]` | Fixture-Font mit vollständigem Wörterbuch patchen; jede Wörterbuchform in allen Varianten aus 8.2 (z.B. `Ärzt*innen`, `Ärzt/-in`, `ÄrztInnen`, `Oberärzt*in`, `ÄRZT*INNEN`, `Ärzt_innenkammer`) formen und mit der Referenz-Umsetzung vergleichen. Wörterbuch-Pfad über `NOSTAR_TEST_DICTIONARY` | `cargo test -- --ignored` |
-| Geschwindigkeit | `tools/bench.sh` | Referenztexte aus `tests/bench/` mit Original und Kopie formen (HarfBuzz in C), Mehraufwand je MB gegen fachl. Spezifikation 8.3 | vor Freigabe, nach Änderungen an 9 |
+| Geschwindigkeit | `tools/bench.sh <dictionary.js> <font>…` | Fonts mit vollständigem Wörterbuch patchen (Test `bench_fonts`), Testfälle und alle Wörterbuchformen mit HarfBuzz (C) prüfen, Referenztexte aus `tests/bench/` mit Original und Kopie formen, Mehraufwand je MB gegen fachl. Spezifikation 8.3 | vor Freigabe, nach Änderungen an 9 |
 | System | manuell | Darstellung in GTK, Qt, Firefox, Chrome | vor Freigabe |
 
-Der Fixture-Font ist eine Latin-Teilmenge von Noto Sans (OFL) mit Ligaturen, weniger als 100 KB.
+Die Fixture-Fonts sind Latin-Teilmengen (OFL, Lizenz in `tests/fixtures/OFL.txt`): Noto Sans mit Ligaturen (54 KB), Adwaita Sans (121 KB), Rubik (88 KB).
 
-Referenztexte in `tests/bench/`, je etwa 1 MB: `prose.txt` (deutsche Prosa unter freier Lizenz, z.B. GNOME-Hilfe), `code.txt` (Quelltext mit `*`, `:`, `/`, URLs, Uhrzeiten), `marked.txt` (Prosa, jede zweite Zeile mit Genderformen aus dem Wörterbuch). `tools/hbcmp.c` wird mit `cc $(pkg-config --cflags --libs harfbuzz)` gebaut; HarfBuzz ist nur dafür nötig, nicht für `nostar`.
+Referenztexte in `tests/bench/` (Quellen und Lizenzen in `README.md`): `prose.txt` (deutsche GNOME-Hilfe, CC BY-SA 3.0, 619 KB; mehr gibt es unter dieser Lizenz nicht), `code.txt` (Python-Standardbibliothek, 1 MB). `marked.txt` (Prosa, jede zweite Zeile mit Genderformen aus dem Wörterbuch) erzeugt `bench.sh`, weil es vom Wörterbuch abhängt. `tools/hbcmp.c` wird mit `cc $(pkg-config --cflags --libs harfbuzz)` gebaut; HarfBuzz ist nur dafür nötig, nicht für `nostar`.
 
 Die Testsammlung `tests/cases.tsv` (8.7) setzt fachl. Spezifikation 13.1 um.
 

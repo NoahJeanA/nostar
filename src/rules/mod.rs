@@ -198,11 +198,15 @@ pub struct Cases {
 const CASES: &str = include_str!("../../tests/cases.tsv");
 
 pub fn cases(config: &Config) -> Result<Cases, RulesError> {
-    parse_cases(CASES, config)
+    parse_cases(CASES, config, &Markers::from_config(config))
 }
 
-fn parse_cases(text: &str, config: &Config) -> Result<Cases, RulesError> {
-    let markers = Markers::from_config(config);
+/// Cases for a font that has only some of the active markers (fachl. Spezifikation 7.2).
+pub fn cases_with(config: &Config, markers: &Markers) -> Result<Cases, RulesError> {
+    parse_cases(CASES, config, markers)
+}
+
+fn parse_cases(text: &str, config: &Config, markers: &Markers) -> Result<Cases, RulesError> {
     let mut cases = Vec::new();
     let mut skipped = 0;
     for (i, line) in text.lines().enumerate() {
@@ -230,7 +234,7 @@ fn parse_cases(text: &str, config: &Config) -> Result<Cases, RulesError> {
                 other => return Err(err(format!(r#"unknown need "{other}""#))),
             };
         }
-        if input != expected && !markers_active(&input, &markers) {
+        if input != expected && !markers_active(&input, markers) {
             applies = false;
         }
         let plain: String = input
@@ -340,13 +344,19 @@ mod tests {
     fn cases_skip_by_config() {
         let text = "Ärzt:innen\tÄrzte\nx:y\tx:y\nFoo*innen\tFoo\tfallback=cut\nÄrzt*in\tArzt\n";
         let mut config = Config::default();
-        assert_eq!(parse_cases(text, &config).unwrap().cases.len(), 4);
+        assert_eq!(
+            parse_cases(text, &config, &Markers::from_config(&config))
+                .unwrap()
+                .cases
+                .len(),
+            4
+        );
         config.markers.retain(|m| *m != MarkerChar::Colon);
         config.fallback = Fallback::Off;
-        let c = parse_cases(text, &config).unwrap();
+        let c = parse_cases(text, &config, &Markers::from_config(&config)).unwrap();
         assert_eq!((c.cases.len(), c.skipped), (2, 2));
         assert!(matches!(
-            parse_cases("a\tb\tnope\n", &config),
+            parse_cases("a\tb\tnope\n", &config, &Markers::from_config(&config)),
             Err(RulesError::CasesFile { line: 1, .. })
         ));
     }
