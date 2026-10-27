@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" width="960" height="400" font-family="DejaVu Sans, Noto Sans, sans-serif">
-  <rect width="960" height="400" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 500" width="960" height="500" font-family="DejaVu Sans, Noto Sans, sans-serif">
+  <rect width="960" height="500" fill="#ffffff"/>
   <defs>
     <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="#555"/>
@@ -7,6 +7,7 @@
   </defs>
   <style>
     .g{fill:#eef4ff;stroke:#5b7fc7;stroke-width:1.2}
+    .n{fill:#f3efff;stroke:#7d68b8;stroke-width:1.2}
     .d{fill:#fff7e8;stroke:#c99a3c;stroke-width:1.2}
     .x{fill:#effaf1;stroke:#4f9a5d;stroke-width:1.2}
     .t{font-size:15px;font-weight:bold;fill:#1d2730}
@@ -20,42 +21,49 @@
     <rect x="80" y="12" width="300" height="28" rx="4" fill="#f4f6f8" stroke="#8a96a3"/>
     <text x="92" y="31">K o l l e g [*] i n n e n</text>
   </g>
-  <text x="400" y="31" class="s">→ Anker „*“, letzter Stammbuchstabe „g“, danach Buchstabe</text>
+  <text x="400" y="31" class="s">→ Anker „*“ (Klasse * : _ · /), davor Buchstabe, danach Buchstabe</text>
 
-  <rect x="20" y="70" width="280" height="110" rx="6" class="g"/>
+  <rect x="20" y="70" width="300" height="120" rx="6" class="g"/>
   <text x="35" y="94" class="t">Gate (Marker-Pass)</text>
   <text x="35" y="114" class="s">in Feature calt, ganz vorne</text>
-  <text x="35" y="134" class="m">a [*] L  → D_a</text>
-  <text x="35" y="152" class="m">g [*] L  → D_g   ✓</text>
-  <text x="35" y="170" class="m">L [*]    → D_fallback</text>
+  <text x="35" y="136" class="m">a [*] L  → Knoten „a“</text>
+  <text x="35" y="156" class="m">g [*] L  → Knoten „g“  ✓</text>
+  <text x="35" y="176" class="m">L [*] L  → Blatt „other“</text>
 
-  <rect x="330" y="70" width="360" height="150" rx="6" class="d"/>
-  <text x="345" y="94" class="t">Dispatch D_g</text>
-  <text x="345" y="114" class="s">nur Regeln mit Stamm auf „g“, geordnet</text>
-  <text x="345" y="136" class="m">Kolleg [*innen]   → Replace(en), Delete…  ✓</text>
-  <text x="345" y="156" class="m">Kolleg [*in] L    → (Ausnahme)</text>
-  <text x="345" y="176" class="m">Kolleg [*in]      → Replace(e), Delete…</text>
-  <text x="345" y="196" class="m">…</text>
-  <text x="345" y="212" class="m">L [*innen]        → Rückfall</text>
+  <rect x="350" y="70" width="330" height="120" rx="6" class="n"/>
+  <text x="365" y="94" class="t">Knoten „g“</text>
+  <text x="365" y="114" class="s">verzweigt nach dem Buchstaben davor</text>
+  <text x="365" y="136" class="m">e g [*]  → Blatt „eg“  ✓</text>
+  <text x="365" y="156" class="m">o g [*]  → Blatt „og“</text>
+  <text x="365" y="176" class="m">L g [*]  → Blatt „other“</text>
 
-  <rect x="725" y="70" width="220" height="150" rx="6" class="x"/>
-  <text x="740" y="94" class="t">Hilfs-Lookups</text>
-  <text x="740" y="120" class="m">Delete     x → ∅</text>
-  <text x="740" y="142" class="m">Deumlaut   ä → a …</text>
-  <text x="740" y="164" class="m">Replace_1  * → e n</text>
-  <text x="740" y="186" class="m">Replace_2  * → e</text>
-  <text x="740" y="208" class="m">…</text>
+  <rect x="350" y="220" width="390" height="140" rx="6" class="d"/>
+  <text x="365" y="244" class="t">Blatt „eg“</text>
+  <text x="365" y="264" class="s">höchstens 24 Regeln, in Listenreihenfolge</text>
+  <text x="365" y="286" class="m">Kolleg [*innen]  → Replace(en), Delete…  ✓</text>
+  <text x="365" y="306" class="m">Kolleg [*in] L   → (Ausnahme)</text>
+  <text x="365" y="326" class="m">Kolleg [*in]     → Replace(e), Delete…</text>
+  <text x="365" y="346" class="m">L [*innen]       → Rückfall</text>
 
-  <path d="M300,152 H326" class="l"/>
-  <path d="M690,136 H721" class="l"/>
+  <rect x="765" y="220" width="180" height="140" rx="6" class="x"/>
+  <text x="780" y="244" class="t">Hilfs-Lookups</text>
+  <text x="780" y="268" class="m">Delete    x → ∅</text>
+  <text x="780" y="290" class="m">Deumlaut  ä → a</text>
+  <text x="780" y="312" class="m">Replace_1 * → en</text>
+  <text x="780" y="334" class="m">Replace_2 * → e</text>
 
-  <text x="20" y="262" class="t">Ergebnis:</text>
+  <path d="M320,156 H346" class="l"/>
+  <path d="M515,190 V216" class="l"/>
+  <path d="M740,286 H761" class="l"/>
+
+  <text x="20" y="244" class="t">Ergebnis:</text>
   <g class="m">
-    <rect x="110" y="244" width="300" height="28" rx="4" fill="#f4f6f8" stroke="#8a96a3"/>
-    <text x="122" y="263">K o l l e g e n</text>
+    <rect x="20" y="256" width="300" height="28" rx="4" fill="#f4f6f8" stroke="#8a96a3"/>
+    <text x="32" y="275">K o l l e g e n</text>
   </g>
 
-  <text x="20" y="310" class="s">Davor läuft der Stamm-Pass: gleiches Schema, Gate nach Anker-Glyphe (z.B. „Ä“ in „Ärzt*in“ → „Arzt“).</text>
-  <text x="20" y="330" class="s">Danach laufen die Lookups des Fonts (Ligaturen, Kerning) unverändert.</text>
-  <text x="20" y="350" class="s">L = beliebiger Buchstabe · [ ] = Eingabe der Regel · rechts davon = Vorschau</text>
+  <text x="20" y="400" class="s">Davor läuft der Stamm-Pass: Gate nur an Umlauten, jede Regel prüft den Rest bis zum Genderzeichen („Ä“ + „rzt*“).</text>
+  <text x="20" y="420" class="s">Kleine Zweige teilen sich das Blatt „other“; jede Regel prüft dort ihren vollen Kontext.</text>
+  <text x="20" y="440" class="s">Danach laufen die Lookups des Fonts (Ligaturen, Kerning) unverändert.</text>
+  <text x="20" y="460" class="s">L = beliebiger Buchstabe · [ ] = Eingabe der Regel · links davon = Rückblick · rechts davon = Vorschau</text>
 </svg>

@@ -1,6 +1,6 @@
 # Spezifikation: `nostar`
 
-Status: Entwurf 3 · Stand: 2026-10-26
+Status: Entwurf 3 · Stand: 2026-10-27
 
 ---
 
@@ -63,7 +63,7 @@ Für jede Genderform werden die Stufen **der Reihe nach** geprüft. Die **erste 
 
 | Stufe | Inhalt | Beispiele |
 |---|---|---|
-| **1. Feste Formen** | Artikel, Pronomen, Determinative, Adjektivendungen, substantivierte Adjektive | `der*die` → der · `die*der` → der · `ein*e` → ein · `eine*n` → einen · `jede*r` → jeder · `sie*er` → er · `Vorsitzende*r` → Vorsitzender · `Angestellte*n` → Angestellten |
+| **1. Feste Formen** | Artikel, Pronomen, Determinative, Adjektivendungen, substantivierte Adjektive | `der*die` → der · `ein*e` → ein · `eine*n` → einen · `jede*r` → jeder · `Vorsitzende*r` → Vorsitzender · `Angestellte*n` → Angestellten |
 | **2. Wörterbuch** | Bekannte Personenbezeichnungen, auch unregelmäßige | `Ärzt*innen` → Ärzte · `Ärzt*in` → Arzt · `Bäuer*innen` → Bauern · `Kolleg*in` → Kollege · `Beamt*innen` → Beamte |
 | **3. Zusammensetzungen** | Unbekannter Stamm, dessen **Ende** ein Wörterbuch-Stamm ist | `Stammkund*innen` → Stammkunden · `Oberärzt*innen` → Oberärzte |
 | **4. Endungsregeln** | Unbekannter Stamm mit typischer Endung | `Polizist*innen` → Polizisten (`-ist`) · `Ingenieur*innen` → Ingenieure (`-eur`) · `Arbeiter*innen` → Arbeiter (`-er`) |
@@ -134,6 +134,7 @@ Diese Fälle sind Teil der Testsammlung (13.1) und müssen exakt so angezeigt we
 | Doppelnennung | Lehrerinnen und Lehrer | unverändert | Umfasst mehrere Wörter, siehe 4.7 |
 | Neutrale Formen | Studierende | unverändert | Optional, siehe Einstellung `participles` |
 | Mehrteilige neutrale Pronomen | der/die/das, er/sie/es | unverändert | Keine eindeutige Zielform |
+| Weibliche Form vorne | die\*der, sie\*er | unverändert | Die Regel müsste an einem häufigen Buchstaben (`i`, `s`) ansetzen; das verlangsamt jeden Text um etwa 8 % (Spike, TECHNIK.md 9.2) |
 
 ### 4.7 Erweiterung: Wortübergreifende Regeln (nicht Version 1)
 
@@ -231,9 +232,16 @@ Wie die Regeln in den Font eingebaut werden, regelt [TECHNIK.md](TECHNIK.md), Ab
 
 ### 8.3 Größe und Geschwindigkeit
 
-- Erwarteter Zuwachs: 1–3 MB pro Font. Mehr als 5 MB pro Font gilt als Fehler.
-- Text ohne Genderzeichen darf **nicht messbar langsamer** dargestellt werden.
-- Text mit Genderzeichen: höchstens doppelte Darstellungszeit gegenüber dem Original-Font.
+- Erwarteter Zuwachs: etwa 1 MB pro Font. Mehr als 5 MB pro Font gilt als Fehler.
+- Text darf **nicht spürbar langsamer** dargestellt werden. Gemessen wird der Mehraufwand gegenüber dem Original-Font je MB Text, mit HarfBuzz auf festen Referenztexten (TECHNIK.md 9.7, 14.1):
+
+| Text | Höchstens |
+|---|---|
+| Prosa ohne Genderformen | +25 ms je MB |
+| Code, URLs, Pfade (viele `*`, `:`, `/`) ohne Genderformen | +40 ms je MB |
+| Text mit Genderformen | +100 ms je MB |
+
+Zum Vergleich: Eine Bildschirmseite Text hat etwa 5 KB, der Mehraufwand liegt dort also bei höchstens 0,5 ms. Ein Verhältnis zur Originalzeit wäre ungeeignet: Der Mehraufwand ist in allen Fonts etwa gleich, sehr schnelle Fonts sähen im Verhältnis aber deutlich schlechter aus.
 
 ### 8.4 Prüfung vor der Verwendung
 
@@ -351,20 +359,23 @@ Paare aus Eingabe und erwarteter Anzeige. Sie enthält mindestens:
 6. Nach `remove` die installierten Fonts, die Schriftauswahl und das Home-Verzeichnis im Zustand vor dem ersten `apply` sind.
 7. Ein beschädigter Original-Font als „fehlgeschlagen“ gemeldet wird, das Original aktiv bleibt und alle anderen Fonts gepatcht werden.
 
-## 14. Offene Entscheidungen
+## 14. Entscheidungen
 
-Die Voreinstellungen in dieser Spezifikation sind Vorschläge.
+Punkte 1–8 entschieden am 2026-10-26, Punkte 9–11 am 2026-10-27. Technische Abweichungen von dieser Spezifikation stehen in [TECHNIK.md](TECHNIK.md), Abschnitt 15, und sind freigegeben.
 
-| # | Frage | Vorschlag |
+| # | Frage | Entscheidung |
 |---|---|---|
 | 1 | Rückfall bei unbekannten Wörtern (`fallback`) | `abschneiden` |
 | 2 | Aktive Genderzeichen | `* : _ · / /-`, Binnen-I nur für Wörterbuch-Stämme |
 | 3 | Fall-Erkennung („den Lehrern“) | Nicht in Version 1 (4.7) |
-| 4 | Datenquelle | Entgendert-Wörterbuch übernehmen, mit german-nouns ergänzen |
-| 5 | Neutrale Formen („Studierende“) | Aus, optional einschaltbar |
+| 4 | Datenquelle | Nur Entgendert-Wörterbuch (TECHNIK.md 15, Punkt 2) |
+| 5 | Neutrale Formen („Studierende“) | Aus, optional einschaltbar; die feste Liste ist noch festzulegen |
 | 6 | Monospace-Fonts ausnehmen | Nein; mit Wörterbuch ist das Risiko für Code gering |
 | 7 | Automatisch nach Paket-Updates neu patchen | Nein; `status` weist auf veraltete Kopien hin |
 | 8 | Programmiersprache | Rust (fontations: `read-fonts`, `write-fonts`, `skrifa`) |
+| 9 | Feste Formen mit weiblicher Form vorne (`die*der`, `sie*er`) | Nicht in Version 1 (4.6); entschieden 2026-10-27 |
+| 10 | Maß für die Geschwindigkeit | Mehraufwand in ms je MB statt Verhältnis (8.3); entschieden 2026-10-27 |
+| 11 | Binnen-I | Bleibt an, trotz etwa 2–10 % Mehraufwand bei Prosa (Großbuchstabe `I` in „Ihre“, „Ihnen“); entschieden 2026-10-27 |
 
 ## 15. Quellen
 
