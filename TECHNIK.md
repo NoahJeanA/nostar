@@ -482,6 +482,13 @@ Grenzen: fachl. Spezifikation 8.3. Die Werte sind ohne Stamm-Anker außerhalb vo
 
 Globale Option: `-v` (zusätzlich `info` auf stderr), `-vv` (`debug`).
 
+Beispielausgabe `data update` (eine Zeile, Details im Log):
+
+```
+$ nostar data update
+dictionary entgendert@febca80, sha256 ok: ~/.local/share/nostar/source/entgendert-febca802f868.js
+```
+
 Beispielausgabe `show`:
 
 ```
