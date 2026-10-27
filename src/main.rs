@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use clap::{Parser, Subcommand};
 use nostar::Error;
+use nostar::config::Config;
 use nostar::paths::Paths;
 
 /// Exit code for an aborted command (TECHNIK.md 12.1).
@@ -101,7 +102,7 @@ fn main() -> ExitCode {
     let name = cli.command.name();
     log::info!(target: "cmd", "start {name}");
     let start = Instant::now();
-    let result = run(&cli.command);
+    let result = run(&cli.command, &paths);
     let elapsed = start.elapsed().as_millis();
     match result {
         Ok(code) => {
@@ -116,9 +117,16 @@ fn main() -> ExitCode {
     }
 }
 
-/// Commands arrive with milestones 3 to 6.
-fn run(command: &Command) -> Result<ExitCode, Error> {
-    Err(Error::NotImplemented(command.name()))
+fn run(command: &Command, paths: &Paths) -> Result<ExitCode, Error> {
+    let config = Config::load(&paths.config_file())?;
+    match command {
+        Command::Data {
+            action: DataAction::Update,
+        } => nostar::cmd::data::update(paths, &config)?,
+        // Arrive with milestones 4 to 6.
+        _ => return Err(Error::NotImplemented(command.name())),
+    }
+    Ok(ExitCode::SUCCESS)
 }
 
 /// Message plus `caused by:` lines, home directory shortened to `~`.

@@ -195,16 +195,18 @@ Danach SHA-256 prüfen. Stimmt sie, wird die Datei atomar an ihren Platz verscho
 
 ### 7.2 Format
 
-`dictionary.js` enthält vier String-Felder: `irregular`, `regular`, `adjectival`, `rules`. `source.rs` liest genau diese vier Felder aus (Suche nach `<feld>: "` bis zum nächsten `"`). Ein weitergehender JavaScript-Parser ist nicht nötig, weil die Datei über die Prüfsumme fixiert ist.
+`dictionary.js` enthält vier String-Felder: `irregular`, `regular`, `adjectival`, `rules`. `source.rs` liest genau diese vier Felder aus (Suche nach `<feld>: "` bis zum nächsten `"`; vor dem Feldnamen darf kein Buchstabe, keine Ziffer und kein `_` stehen, sonst fände die Suche nach `regular` das Feld `irregular`). Ein weitergehender JavaScript-Parser ist nicht nötig, weil die Datei über die Prüfsumme fixiert ist.
 
 | Feld | Aufbau | Bedeutung |
 |---|---|---|
-| `irregular` | `stamm,a,b,c[,a]` getrennt durch `;` | Singular = decode(stamm, a), Plural = decode(Singular, b), Dativ = decode(Plural, c); Flag `a` = adjektivisch |
+| `irregular` | `stamm,a,b[,c[,a]]` getrennt durch `;` | Singular = decode(stamm, a), Plural = decode(Singular, b), Dativ = decode(Plural, c), fehlt `c`, ist der Dativ gleich dem Plural; Flag `a` = adjektivisch |
 | `regular` | `stamm` getrennt durch `;` | Singular = Plural = stamm |
 | `adjectival` | Wörter getrennt durch `;` | substantivierte Adjektive („Vorsitzende“) |
-| `rules` | `endung=s,p,d` oder `endung=!` | Endungsregel; `!` = keine Regel |
+| `rules` | `endung=s,p,d` oder `endung=!` | Endungsregel; Singular = endung + s, Plural = endung + p (an die Endung angehängt, ohne decode; `eg=e,en,en` → `ege`, `egen`); `!` = keine Regel |
 
 decode(basis, code): leer → basis; beginnt mit `+` → basis + Rest; sonst → code.
+
+Jeder Stamm und jede Form muss aus Buchstaben (Unicode-Kategorie L) bestehen. Ein ungültiger Eintrag bricht mit Feld und Eintrag in der Meldung ab. Beim Laden wird die Prüfsumme erneut geprüft.
 
 ### 7.3 Modell
 
@@ -503,6 +505,8 @@ restart running applications to see the change
 
 ### 10.1 Parallelität
 
+Die schreibenden Befehle `data update`, `rules build`, `apply` und `remove` holen zu Beginn die Sperre (`File::try_lock` auf `lock`). So läuft nur einer gleichzeitig (fachl. Spezifikation 12).
+
 `apply` patcht Fonts parallel mit `std::thread::scope`. Die Anzahl der Threads entspricht `std::thread::available_parallelism`. Der Plan (9.1–9.2) wird einmal erstellt und von allen Threads gelesen.
 
 ### 10.2 Ablauf `apply` mit Sicherungen
@@ -558,7 +562,9 @@ error: config: fallback: expected "cut", "marker" or "off", got "abschneiden"
 error: config: markers: unsupported marker "+"
 error: source: sha256 mismatch for entgendert-febca802f868.js: expected 6330c126…, got 9b1c40aa…
 error: source: curl exit status 22: https://raw.githubusercontent.com/…/dictionary.js
-error: source: dictionary.js: field "irregular" not found
+error: source: dictionary missing: ~/.local/share/nostar/source/entgendert-febca802f868.js, run "nostar data update"
+error: source: entgendert-febca802f868.js: field "irregular" not found
+error: source: entgendert-febca802f868.js: field "irregular": invalid entry "Ärzt,Arzt"
 error: rules: rules.tsv missing, run "nostar rules build"
 error: rules: rules.tsv built from other config, run "nostar rules build"
 error: rules: 3 of 214 cases differ

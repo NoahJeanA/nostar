@@ -287,13 +287,16 @@ fn hex(key: &str, value: &str, len: usize) -> Result<String, ConfigError> {
 }
 
 /// Letters in the sense of Unicode category L, as in fachl. Spezifikation 3.
-fn is_letter(c: char) -> bool {
-    c.general_category_group() == GeneralCategoryGroup::Letter
+/// Non-empty and only Unicode letters (category L); used for own words and dictionary entries.
+pub fn is_word(s: &str) -> bool {
+    !s.is_empty()
+        && s.chars()
+            .all(|c| c.general_category_group() == GeneralCategoryGroup::Letter)
 }
 
 fn check_word(stem: String, w: RawWord) -> Result<(String, Word), ConfigError> {
     let key = format!("words.{stem}");
-    let letters = |field: &str, v: &str| match !v.is_empty() && v.chars().all(is_letter) {
+    let letters = |field: &str, v: &str| match is_word(v) {
         true => Ok(()),
         false => Err(invalid(
             &format!("{key}{field}"),
