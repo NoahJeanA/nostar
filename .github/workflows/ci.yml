@@ -13,7 +13,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: rustup toolchain install stable --profile minimal --component rustfmt,clippy && rustup default stable
       - run: cargo fmt --check
       - run: cargo clippy --all-targets --locked -- -D warnings
@@ -22,6 +22,6 @@ jobs:
   msrv:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: rustup toolchain install 1.89 --profile minimal && rustup default 1.89
       - run: cargo build --locked
