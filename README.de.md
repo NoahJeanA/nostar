@@ -24,7 +24,8 @@ Systemdateien werden nicht verändert, root-Rechte sind nicht nötig.
 
 - Debian, Ubuntu: `.deb` von der [Release-Seite](https://github.com/NoahJeanA/nostar/releases)
 - Fedora, openSUSE: `.rpm` von der Release-Seite
-- Arch Linux: AUR-Paket `nostar` oder `nostar-bin`
+- Arch Linux: AUR-Paket folgt; bis dahin aus diesem Repository bauen:
+  `git clone https://github.com/NoahJeanA/nostar && cd nostar/packaging/aur/nostar-bin && makepkg -si`
 - Mit Rust (ab 1.89): `cargo install nostar`
 
 Zur Laufzeit nötig: fontconfig (`fc-list`, `fc-match`, `fc-cache`) und `curl`; `gsettings` ist optional (GNOME-Schriften).

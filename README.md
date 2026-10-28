@@ -18,7 +18,8 @@ No system files are changed and no root rights are needed.
 
 - Debian, Ubuntu: `.deb` from the [releases page](https://github.com/NoahJeanA/nostar/releases)
 - Fedora, openSUSE: `.rpm` from the releases page
-- Arch Linux: AUR package `nostar` or `nostar-bin`
+- Arch Linux: AUR package coming soon; until then build it from this repository:
+  `git clone https://github.com/NoahJeanA/nostar && cd nostar/packaging/aur/nostar-bin && makepkg -si`
 - With Rust 1.89 or later: `cargo install nostar`
 
 Needed at runtime: fontconfig (`fc-list`, `fc-match`, `fc-cache`) and `curl`; `gsettings` is optional (GNOME fonts).
