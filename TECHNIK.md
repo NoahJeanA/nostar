@@ -87,6 +87,8 @@ tests/
 tools/
 ├── hbcmp.c            Messwerkzeug: zwei Fonts abwechselnd mit HarfBuzz (C) formen
 └── bench.sh           Fonts patchen und gegen fachl. Spezifikation 8.3 messen
+packaging/aur/         PKGBUILDs für nostar und nostar-bin (16)
+.github/workflows/     ci.yml (Prüfungen), release.yml (Pakete je Tag) (16)
 ```
 
 ### 3.1 Abhängigkeiten zwischen Modulen
@@ -108,6 +110,7 @@ Verboten: `rules` kennt keine Fonts, `font` kennt kein Dateisystem außer Ein- u
 | Crate | Zweck | Begründung |
 |---|---|---|
 | `clap` (Feature `derive`) | Kommandozeile | Hilfe-Texte und Fehlermeldungen ohne eigenen Code |
+| `clap_mangen`, `clap_complete` | Man-Pages und Shell-Vervollständigung für die Pakete (16) | aus derselben CLI-Definition, nichts doppelt gepflegt; freigegeben 2026-10-28 |
 | `serde` (Feature `derive`), `toml` | `config.toml`, `manifest.toml` | Vorgabe TOML |
 | `read-fonts`, `write-fonts` | Fonts lesen, GSUB bauen, Font schreiben | Einzige gepflegte Rust-Bibliothek, die bestehende Tabellen verändern und neu schreiben kann |
 | `harfrust` | Formung bei der Prüfung (9.6) | Rust-Portierung von HarfBuzz, keine C-Abhängigkeit |
@@ -502,6 +505,8 @@ Grenzen: fachl. Spezifikation 8.3. Prosa: deutsche GNOME-Hilfe (619 KB, 1,4 % Um
 
 Globale Option: `-v` (zusätzlich `info` auf stderr), `-vv` (`debug`).
 
+Versteckte Optionen für die Pakete (16), nicht in der Hilfe: `--generate <bash|zsh|fish|elvish|powershell>` schreibt die Shell-Vervollständigung auf stdout, `--generate-man <DIR>` eine Man-Page je Befehl (`nostar.1`, `nostar-apply.1`, …) in das Verzeichnis. Beide laufen ohne Konfiguration, Log und Sperre.
+
 Beispielausgabe `data update` (eine Zeile, Details im Log):
 
 ```
@@ -768,7 +773,25 @@ Punkte 1–11 freigegeben am 2026-10-26 (Punkt 5 geändert am 2026-10-27), Punkt
 
 Ergänzung zu Punkt 3: `rules build` meldet die Trefferquote jeder übernommenen Endungsregel auf dem Wörterbuch (`info`). Sie liegt unter dem Wert von Entgendert, weil das Wörterbuch ein Ausschnitt ist (regelmäßige Zusammensetzungen fehlen); deshalb keine Warnung.
 
-## 16. Quellen
+## 16. Veröffentlichung und Pakete
+
+Lizenz: GPL-3.0-or-later (`LICENSE`). Testdaten in `tests/fixtures/` und `tests/bench/` haben eigene Lizenzen (14.1); sie gehören nicht in das crates.io-Paket (`include` in `Cargo.toml`: `src/`, `tests/cases.tsv`, README, LICENSE, CHANGELOG).
+
+| Kanal | Wie | Wer |
+|---|---|---|
+| GitHub Releases | `release.yml` bei einem Tag `v<version>`: für x86_64 und aarch64 Archiv (Binary, Man-Pages, Vervollständigung, README, LICENSE, CHANGELOG), `.deb` (`cargo-deb`), `.rpm` (`cargo-generate-rpm`), `SHA256SUMS`; als Entwurf, der vor dem Veröffentlichen geprüft wird | CI |
+| AUR | `packaging/aur/nostar` (baut aus dem Tag-Archiv, mit `check()`), `packaging/aur/nostar-bin` (Release-Archiv); nach einem Tag `pkgver` setzen, `updpkgsums`, `makepkg --printsrcinfo > .SRCINFO` | Maintainer |
+| crates.io | `cargo publish` | Maintainer |
+
+Gebaut wird auf Ubuntu 22.04 (glibc 2.35), damit die Binaries auch auf älteren Distributionen laufen. Abhängigkeiten der Pakete: `fontconfig`, `curl`; empfohlen bzw. optional `gsettings` (`libglib2.0-bin`, `glib2`). Der Tag muss zur Version in `Cargo.toml` passen, sonst bricht `release.yml` ab.
+
+Die Pakete installieren nur das Programm. Kopien und fontconfig-Regel liegen in den Home-Verzeichnissen der Nutzer; ein Paket-Skript kann und darf sie nicht entfernen. Deshalb weisen Paketbeschreibung, README und die Meldungen des AUR-Pakets darauf hin, vor dem Deinstallieren `nostar remove` auszuführen. Bei der Installation läuft nichts automatisch (fachl. Spezifikation 14, Punkt 7).
+
+`ci.yml` prüft bei jedem Push `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test` und den Build mit Rust 1.89.
+
+Nicht vorgesehen: Ubuntu-PPA (Ubuntu 24.04 hat rustc 1.75), offizielle Debian- und Fedora-Pakete (jedes Crate müsste einzeln paketiert werden), Flatpak und Snap (die Sandbox verhindert den Zugriff auf Systemschriften und `~/.config/fontconfig`).
+
+## 17. Quellen
 
 - Entgendert, Wörterbuch und Format: https://github.com/janduettmann/Entgendert
 - HarfBuzz, GSUB-Größenlimits und Extension-Lookups: https://flutter.googlesource.com/third_party/harfbuzz/+/HEAD/docs/repacker.md

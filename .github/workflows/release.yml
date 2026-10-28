@@ -1,0 +1,80 @@
+# Release packages for a tag v<version> (TECHNIK.md 16): archive, .deb, .rpm and SHA256SUMS
+# for x86_64 and aarch64, as a draft release to check before publishing.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # Ubuntu 22.04: glibc 2.35, so the binary also runs on older distributions.
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-22.04-arm
+    runs-on: ${{ matrix.runner }}
+    env:
+      TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup toolchain install stable --profile minimal && rustup default stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb,cargo-generate-rpm
+      - name: Tag matches Cargo.toml
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME, Cargo.toml $version"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - run: cargo build --release --locked --target "$TARGET"
+      - name: Man pages and completions
+        run: |
+          bin="target/$TARGET/release/nostar"
+          mkdir -p target/assets/man
+          "$bin" --generate-man target/assets/man
+          "$bin" --generate bash > target/assets/nostar.bash
+          "$bin" --generate zsh > target/assets/_nostar
+          "$bin" --generate fish > target/assets/nostar.fish
+      - run: cargo deb --no-build --target "$TARGET"
+      - run: cargo generate-rpm --target "$TARGET"
+      - name: Archive
+        run: |
+          name="nostar-$VERSION-$TARGET"
+          mkdir -p "dist/$name/completions"
+          cp "target/$TARGET/release/nostar" README.md LICENSE CHANGELOG.md "dist/$name/"
+          cp -r target/assets/man "dist/$name/"
+          cp target/assets/nostar.bash target/assets/_nostar target/assets/nostar.fish "dist/$name/completions/"
+          tar -C dist -czf "dist/$name.tar.gz" "$name"
+          rm -r "dist/$name"
+          cp target/"$TARGET"/debian/*.deb target/"$TARGET"/generate-rpm/*.rpm dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          merge-multiple: true
+          path: dist
+      - run: cd dist && sha256sum * > SHA256SUMS
+      - name: Draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --draft \
+            --title "nostar ${GITHUB_REF_NAME#v}" \
+            --notes "See CHANGELOG.md. Run \`nostar remove\` before uninstalling a package."

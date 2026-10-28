@@ -1,0 +1,8 @@
+post_install() {
+  echo "nostar: each user runs 'nostar data update', 'nostar rules build' and 'nostar apply'."
+}
+
+pre_remove() {
+  echo "nostar: the package does not remove patched font copies in home directories;"
+  echo "nostar: each user who ran 'nostar apply' should run 'nostar remove' first."
+}

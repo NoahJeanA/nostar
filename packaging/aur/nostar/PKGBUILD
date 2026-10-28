@@ -1,0 +1,48 @@
+# Maintainer: NoahJeanA <103172419+NoahJeanA@users.noreply.github.com>
+# Builds from the release tag (TECHNIK.md 16). After a new tag: pkgver, then updpkgsums.
+pkgname=nostar
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Shows German gender forms in the generic masculine by patching font copies"
+arch=('x86_64' 'aarch64')
+url="https://github.com/NoahJeanA/nostar"
+license=('GPL-3.0-or-later')
+depends=('fontconfig' 'curl' 'gcc-libs' 'glibc')
+makedepends=('cargo')
+optdepends=('glib2: GNOME fonts in mode standard (gsettings)')
+install=nostar.install
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable CARGO_TARGET_DIR=target
+  cargo build --frozen --release
+  mkdir -p target/assets/man
+  target/release/nostar --generate-man target/assets/man
+  target/release/nostar --generate bash > target/assets/nostar.bash
+  target/release/nostar --generate zsh > target/assets/_nostar
+  target/release/nostar --generate fish > target/assets/nostar.fish
+}
+
+check() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable CARGO_TARGET_DIR=target
+  cargo test --frozen
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  install -Dm755 target/release/nostar "$pkgdir/usr/bin/nostar"
+  install -Dm644 target/assets/man/*.1 -t "$pkgdir/usr/share/man/man1/"
+  install -Dm644 target/assets/nostar.bash "$pkgdir/usr/share/bash-completion/completions/nostar"
+  install -Dm644 target/assets/_nostar "$pkgdir/usr/share/zsh/site-functions/_nostar"
+  install -Dm644 target/assets/nostar.fish "$pkgdir/usr/share/fish/vendor_completions.d/nostar.fish"
+  install -Dm644 README.md CHANGELOG.md -t "$pkgdir/usr/share/doc/$pkgname/"
+}

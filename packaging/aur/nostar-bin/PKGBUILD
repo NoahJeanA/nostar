@@ -1,0 +1,29 @@
+# Maintainer: NoahJeanA <103172419+NoahJeanA@users.noreply.github.com>
+# Uses the archives of the GitHub release (TECHNIK.md 16). After a new tag: pkgver, then updpkgsums.
+pkgname=nostar-bin
+_pkgname=nostar
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Shows German gender forms in the generic masculine by patching font copies (binary)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/NoahJeanA/nostar"
+license=('GPL-3.0-or-later')
+depends=('fontconfig' 'curl' 'gcc-libs' 'glibc')
+optdepends=('glib2: GNOME fonts in mode standard (gsettings)')
+provides=("$_pkgname")
+conflicts=("$_pkgname")
+install=nostar.install
+source_x86_64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-x86_64-unknown-linux-gnu.tar.gz")
+source_aarch64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-aarch64-unknown-linux-gnu.tar.gz")
+sha256sums_x86_64=('SKIP')
+sha256sums_aarch64=('SKIP')
+
+package() {
+  cd "$_pkgname-$pkgver-$CARCH-unknown-linux-gnu"
+  install -Dm755 nostar "$pkgdir/usr/bin/nostar"
+  install -Dm644 man/*.1 -t "$pkgdir/usr/share/man/man1/"
+  install -Dm644 completions/nostar.bash "$pkgdir/usr/share/bash-completion/completions/nostar"
+  install -Dm644 completions/_nostar "$pkgdir/usr/share/zsh/site-functions/_nostar"
+  install -Dm644 completions/nostar.fish "$pkgdir/usr/share/fish/vendor_completions.d/nostar.fish"
+  install -Dm644 README.md CHANGELOG.md -t "$pkgdir/usr/share/doc/$_pkgname/"
+}

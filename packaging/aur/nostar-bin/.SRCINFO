@@ -1,0 +1,22 @@
+pkgbase = nostar-bin
+	pkgdesc = Shows German gender forms in the generic masculine by patching font copies (binary)
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/NoahJeanA/nostar
+	install = nostar.install
+	arch = x86_64
+	arch = aarch64
+	license = GPL-3.0-or-later
+	depends = fontconfig
+	depends = curl
+	depends = gcc-libs
+	depends = glibc
+	optdepends = glib2: GNOME fonts in mode standard (gsettings)
+	provides = nostar
+	conflicts = nostar
+	source_x86_64 = https://github.com/NoahJeanA/nostar/releases/download/v0.1.0/nostar-0.1.0-x86_64-unknown-linux-gnu.tar.gz
+	sha256sums_x86_64 = SKIP
+	source_aarch64 = https://github.com/NoahJeanA/nostar/releases/download/v0.1.0/nostar-0.1.0-aarch64-unknown-linux-gnu.tar.gz
+	sha256sums_aarch64 = SKIP
+
+pkgname = nostar-bin
