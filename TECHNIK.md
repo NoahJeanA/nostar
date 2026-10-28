@@ -696,6 +696,8 @@ error: fontconfig: 12 of 42 patched copies not listed after fc-cache, e.g. ~/.lo
 | 1 | `apply`: mindestens ein Font `failed`, Rest erfolgreich; `rules test`: Abweichungen |
 | 2 | Abbruch: Konfiguration, Datenquelle, Regelliste, Sperre, fontconfig |
 
+Ist stdout eine geschlossene Pipe (`nostar status | head -1`), endet nostar beim nächsten Ausgabe-Schreiben still mit 0. Jeder Befehl gibt erst aus, wenn seine Arbeit getan ist; die Sperre (`flock`) endet mit dem Prozess.
+
 ## 13. Code-Regeln
 
 - `cargo fmt`, `cargo clippy -- -D warnings` (Standard-Lints, kein `pedantic`)

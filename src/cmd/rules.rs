@@ -31,7 +31,7 @@ pub fn build(paths: &Paths, config: &Config) -> Result<ExitCode, Error> {
         cases.skipped
     );
     store::write(&paths.rules(), set.rules(), config).map_err(RulesError::from)?;
-    println!(
+    out!(
         "{} rules, {} cases ok: {}",
         set.rules().len(),
         cases.cases.len(),
@@ -49,10 +49,10 @@ pub fn test(paths: &Paths, config: &Config) -> Result<ExitCode, Error> {
         log::info!("{} cases skipped for this config", cases.skipped);
     }
     if failures.is_empty() {
-        println!("{} cases ok", cases.cases.len());
+        out!("{} cases ok", cases.cases.len());
         return Ok(ExitCode::SUCCESS);
     }
-    println!(
+    out!(
         "{} of {} cases differ{}",
         failures.len(),
         cases.cases.len(),

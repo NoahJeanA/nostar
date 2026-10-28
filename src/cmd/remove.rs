@@ -35,8 +35,8 @@ pub fn remove(paths: &Paths, keep_config: bool) -> Result<(), Error> {
             log::info!("deleted {}", d.display());
         }
     }
-    println!("removed {removed} files");
-    println!("{}", super::RESTART);
+    out!("removed {removed} files");
+    out!("{}", super::RESTART);
     Ok(())
 }
 

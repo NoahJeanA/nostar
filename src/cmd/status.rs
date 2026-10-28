@@ -19,14 +19,14 @@ pub fn status(paths: &Paths, config: &Config) -> Result<(), Error> {
 
     let active = rule_file.exists() && !manifest.fonts.is_empty();
     if active {
-        println!(
+        out!(
             "{:<12}yes, {} fonts, {}",
             "active",
             manifest.fonts.len(),
             tilde(&rule_file)
         );
     } else {
-        println!("{:<12}no", "active");
+        out!("{:<12}no", "active");
     }
 
     let short: String = config.source.commit.chars().take(7).collect();
@@ -35,13 +35,13 @@ pub fn status(paths: &Paths, config: &Config) -> Result<(), Error> {
     } else {
         r#", missing, run "nostar data update""#.to_string()
     };
-    println!("{:<12}entgendert@{short}{dictionary}", "dictionary");
+    out!("{:<12}entgendert@{short}{dictionary}", "dictionary");
 
     let rules_sha = sha256_file(&paths.rules()).ok();
     match store::read(&paths.rules(), config) {
         Ok(rules) => {
             let count = |s| rules.iter().filter(|r| r.stage == s).count();
-            println!(
+            out!(
                 "{:<12}{} (stage 1: {}, 2: {}, 4: {}, 5: {}), current",
                 "rules",
                 rules.len(),
@@ -52,12 +52,12 @@ pub fn status(paths: &Paths, config: &Config) -> Result<(), Error> {
             );
         }
         Err(e @ (RulesError::Missing(_) | RulesError::Stale(_))) => {
-            println!("{:<12}{e}", "rules");
+            out!("{:<12}{e}", "rules");
         }
         Err(e) => return Err(e.into()),
     }
 
-    println!("{:<12}{}", "patched", manifest.fonts.len());
+    out!("{:<12}{}", "patched", manifest.fonts.len());
     let mut outdated: Vec<(PathBuf, &str)> = Vec::new();
     for e in &manifest.fonts {
         let reason = if !e.original.exists() {
@@ -75,9 +75,9 @@ pub fn status(paths: &Paths, config: &Config) -> Result<(), Error> {
             outdated.push((e.original.clone(), r));
         }
     }
-    println!("{:<12}{}", "outdated", outdated.len());
+    out!("{:<12}{}", "outdated", outdated.len());
     for (p, r) in &outdated {
-        println!("  {}: {r}", tilde(p));
+        out!("  {}: {r}", tilde(p));
     }
 
     let listed = super::listed(config)?;
@@ -88,9 +88,9 @@ pub fn status(paths: &Paths, config: &Config) -> Result<(), Error> {
         .iter()
         .filter(|p| !known.contains(p))
         .collect();
-    println!("{:<12}{}", "new", new.len());
+    out!("{:<12}{}", "new", new.len());
     for p in new {
-        println!("  {}", tilde(p));
+        out!("  {}", tilde(p));
     }
 
     for generic in ["sans-serif", "serif", "monospace"] {
@@ -101,9 +101,9 @@ pub fn status(paths: &Paths, config: &Config) -> Result<(), Error> {
                 } else {
                     ""
                 };
-                println!("{generic:<12}{}  {}{copy}", f.family, tilde(&f.file));
+                out!("{generic:<12}{}  {}{copy}", f.family, tilde(&f.file));
             }
-            None => println!("{generic:<12}none"),
+            None => out!("{generic:<12}none"),
         }
     }
     Ok(())

@@ -10,7 +10,7 @@ pub fn update(paths: &Paths, config: &Config) -> Result<(), Error> {
     let _lock = Lock::acquire(&paths.lock())?;
     let path = source::update(paths, &config.source)?;
     let short: String = config.source.commit.chars().take(7).collect();
-    println!(
+    out!(
         "dictionary entgendert@{short}, sha256 ok: {}",
         paths.tilde(&path.display().to_string())
     );

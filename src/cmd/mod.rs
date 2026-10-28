@@ -1,5 +1,12 @@
 //! Commands (TECHNIK.md 10): the only layer that combines several modules.
 
+/// One line of result output on stdout, like `println!`.
+macro_rules! out {
+    ($($arg:tt)*) => {
+        $crate::cmd::write_line(format_args!($($arg)*))
+    };
+}
+
 pub mod apply;
 pub mod data;
 pub mod remove;
@@ -59,6 +66,23 @@ pub fn listed(config: &Config) -> Result<Vec<Listed>, Error> {
             mono: f.mono,
         })
         .collect())
+}
+
+/// Writes one line to stdout. A closed pipe (`nostar status | head`) ends the program with
+/// exit code 0: every command prints only after its work is done, and the lock is released
+/// with the process.
+pub fn write_line(args: std::fmt::Arguments) {
+    use std::io::Write;
+    let mut stdout = std::io::stdout().lock();
+    if let Err(e) = stdout
+        .write_fmt(args)
+        .and_then(|()| stdout.write_all(b"\n"))
+    {
+        if e.kind() == std::io::ErrorKind::BrokenPipe {
+            std::process::exit(0);
+        }
+        log::warn!("stdout: {e}");
+    }
 }
 
 pub const RESTART: &str = "restart running applications to see the change";

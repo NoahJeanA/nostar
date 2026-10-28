@@ -9,7 +9,7 @@ use crate::rules::MARKER_CHARS;
 pub fn show(paths: &Paths, config: &Config, text: &str) -> Result<(), Error> {
     let set = load(paths, config)?;
     let out = set.apply(text);
-    println!("{}", out.text);
+    out!("{}", out.text);
     let chars: Vec<char> = text.chars().collect();
     // One line per changed word, with the rule of its first change.
     let mut lines: Vec<(String, String, String)> = Vec::new();
@@ -28,7 +28,7 @@ pub fn show(paths: &Paths, config: &Config, text: &str) -> Result<(), Error> {
     let ws = lines.iter().map(|l| l.0.chars().count()).max().unwrap_or(0);
     let wt = lines.iter().map(|l| l.1.chars().count()).max().unwrap_or(0);
     for (source, target, info) in &lines {
-        println!("  {source:<ws$}  -> {target:<wt$}  {info}");
+        out!("  {source:<ws$}  -> {target:<wt$}  {info}");
     }
     Ok(())
 }

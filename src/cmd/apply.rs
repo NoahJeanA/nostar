@@ -151,9 +151,9 @@ pub fn apply(paths: &Paths, config: &Config, dry_run: bool) -> Result<ExitCode, 
     }
 
     let patched = jobs.len() - failed.len();
-    println!("{:<10}{:>4}", "patched", patched);
-    println!("{:<10}{:>4}", "unchanged", unchanged.len());
-    println!(
+    out!("{:<10}{:>4}", "patched", patched);
+    out!("{:<10}{:>4}", "unchanged", unchanged.len());
+    out!(
         "{:<10}{:>4}{}",
         "skipped",
         selection.skipped.len(),
@@ -161,20 +161,20 @@ pub fn apply(paths: &Paths, config: &Config, dry_run: bool) -> Result<ExitCode, 
     );
     let fail_line = |(p, r): &(PathBuf, String)| paths.tilde(&format!("{}: {r}", p.display()));
     match failed.as_slice() {
-        [] => println!("{:<10}{:>4}", "failed", 0),
-        [one] => println!("{:<10}{:>4}  {}", "failed", 1, fail_line(one)),
+        [] => out!("{:<10}{:>4}", "failed", 0),
+        [one] => out!("{:<10}{:>4}  {}", "failed", 1, fail_line(one)),
         many => {
-            println!("{:<10}{:>4}", "failed", many.len());
+            out!("{:<10}{:>4}", "failed", many.len());
             for f in many {
-                println!("  {}", fail_line(f));
+                out!("  {}", fail_line(f));
             }
         }
     }
     if removed > 0 {
-        println!("{:<10}{:>4}", "removed", removed);
+        out!("{:<10}{:>4}", "removed", removed);
     }
     if changed {
-        println!("{}", super::RESTART);
+        out!("{}", super::RESTART);
     }
     Ok(if failed.is_empty() {
         ExitCode::SUCCESS
@@ -282,14 +282,14 @@ fn print_dry_run(
     skipped: &[(PathBuf, select::Skip)],
     stale: &[Entry],
 ) {
-    println!("{:<10}{:>4}", "patch", jobs.len());
+    out!("{:<10}{:>4}", "patch", jobs.len());
     for j in jobs {
-        println!("  {}", paths.tilde(&j.original.display().to_string()));
+        out!("  {}", paths.tilde(&j.original.display().to_string()));
     }
-    println!("{:<10}{:>4}", "unchanged", unchanged);
-    println!("{:<10}{:>4}{}", "skipped", skipped.len(), reasons(skipped));
-    println!("{:<10}{:>4}", "remove", stale.len());
+    out!("{:<10}{:>4}", "unchanged", unchanged);
+    out!("{:<10}{:>4}{}", "skipped", skipped.len(), reasons(skipped));
+    out!("{:<10}{:>4}", "remove", stale.len());
     for e in stale {
-        println!("  {}", paths.tilde(&e.copy.display().to_string()));
+        out!("  {}", paths.tilde(&e.copy.display().to_string()));
     }
 }
