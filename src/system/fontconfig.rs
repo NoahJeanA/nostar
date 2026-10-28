@@ -128,6 +128,26 @@ pub fn cache() -> Result<(), SystemError> {
     Ok(())
 }
 
+/// Rebuilds the cache of `dir` even if fontconfig thinks it is current: a program that
+/// scans while `apply` writes leaves a cache with the same mtime second (TECHNIK.md 10.4).
+pub fn cache_force(dir: &Path) -> Result<(), SystemError> {
+    let dir = dir.to_string_lossy();
+    run("fc-cache", &["-f", &dir])?;
+    log::info!("fc-cache -f {dir} done");
+    Ok(())
+}
+
+/// Copies fontconfig does not list.
+pub fn unlisted<'a>(copies: &[&'a Path]) -> Result<Vec<&'a Path>, SystemError> {
+    let listed: std::collections::HashSet<PathBuf> =
+        list(":")?.into_iter().map(|f| f.file).collect();
+    Ok(copies
+        .iter()
+        .copied()
+        .filter(|c| !listed.contains(*c))
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

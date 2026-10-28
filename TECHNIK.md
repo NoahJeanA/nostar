@@ -68,6 +68,7 @@ src/
 │   ├── gsub.rs        Lookups in bestehende GSUB einfügen, Indizes verschieben
 │   └── verify.rs      Formung mit harfrust, Vergleich Original/Kopie
 ├── system/
+│   ├── desktop.rs     GNOME-Schriften aus gsettings
 │   ├── fontconfig.rs  fc-match, fc-list, 99-nostar.conf schreiben, fc-cache
 │   └── manifest.rs    manifest.toml lesen/schreiben
 └── cmd/
@@ -552,9 +553,11 @@ Ein Font gilt als unverändert, wenn er im Manifest steht, die SHA-256 von Origi
 
 `--dry-run` ordnet die Kandidaten ein (patchen, unverändert, übersprungen mit Grund, zu löschende Kopien), patcht aber nicht; ob ein Patch fehlschlagen würde, zeigt es daher nicht.
 
-### 10.3 Kandidaten (`font/select.rs`, `system/fontconfig.rs`)
+### 10.3 Kandidaten (`font/select.rs`, `system/fontconfig.rs`, `system/desktop.rs`)
 
-`system/fontconfig.rs` ruft `fc-match` und `fc-list` auf (`--format` mit Datei, erster Familienname, `spacing`). Modus `standard`: Familien von `fc-match` für `sans-serif`, `serif`, `monospace`, `Arial`, `Times New Roman`, `Courier New` sowie die Familien aus `families`; davon alle Dateien über `fc-list :family=<Familie>`. Modus `all`: alle Dateien von `fc-list`.
+`system/fontconfig.rs` ruft `fc-match` und `fc-list` auf (`--format` mit Datei, erster Familienname, `spacing`). Modus `standard`: Familien von `fc-match` für `sans-serif`, `serif`, `monospace`, `Arial`, `Times New Roman`, `Courier New` und für die GNOME-Schriften, dazu die Familien aus `families`; davon alle Dateien über `fc-list :family=<Familie>`.
+
+GNOME-Schriften: `system/desktop.rs` liest `gsettings get org.gnome.desktop.interface` für `font-name`, `document-font-name` und `monospace-font-name`. Aus der Pango-Beschreibung (`'Cantarell Bold 11'`) bleiben die Familien ohne Schnitt und Größe. Jede Familie geht wie die allgemeinen Namen über `fc-match`; ist sie nicht installiert, zählt die Schrift, die fontconfig stattdessen zeigt. Fehlen `gsettings` oder das Schema, gibt es keine GNOME-Schriften und keinen Fehler (`debug`-Meldung). Grund: GTK-Programme zeigen diese Schriften, nicht `sans-serif` (bei der Abnahme: Rubik, Adwaita Sans, Adwaita Mono). Modus `all`: alle Dateien von `fc-list`.
 
 Nach dem ersten `apply` blendet fontconfig die Originale aus und liefert die Kopien. Eine Datei unter `~/.local/share/fonts/nostar/` wird deshalb über den gespiegelten Pfad auf ihr Original zurückgeführt. Kopien, deren Original fehlt oder nicht mehr ausgewählt ist, werden gelöscht.
 
@@ -582,6 +585,8 @@ original = "/usr/share/fonts/noto/NotoSans-Regular.ttf"
 original_sha256 = "…"
 copy = "/home/u/.local/share/fonts/nostar/usr/share/fonts/noto/NotoSans-Regular.ttf"
 ```
+
+Nach dem Schreiben ruft `apply` `fc-cache -f ~/.local/share/fonts` auf. Ohne `-f` hält fontconfig einen Cache für aktuell, den ein laufendes Programm angelegt hat, während `apply` noch schrieb, wenn er aus derselben Sekunde stammt. Die Kopien fehlen dann in der Schriftauswahl, während die Originale ausgeblendet sind (beobachtet bei der Abnahme: `serif` lieferte DejaVu Serif). Danach prüft `apply` mit `fc-list`, ob alle Kopien sichtbar sind; fehlen welche, baut es den Cache noch einmal neu und bricht sonst mit `error: fontconfig: 12 of 42 patched copies not listed after fc-cache, e.g. …` ab. `remove` ruft `fc-cache` ohne `-f` auf.
 
 Ist `~/.config/fontconfig` oder `…/conf.d` eine Datei statt eines Verzeichnisses, bricht `apply` (auch mit `--dry-run`) vor jeder Änderung mit Exit-Code 2 ab. Die Datei gehört dem Nutzer, nostar verschiebt oder ändert sie nicht.
 
@@ -624,6 +629,8 @@ Gründe für `outdated`: `original changed`, `original missing`, `rules changed`
 ### 10.6 `remove`
 
 Löscht `~/.local/share/fonts/nostar/` vollständig, `99-nostar.conf`, `rules.tsv`, Manifest, Log samt Sicherung und Sperrdatei; ohne `--keep-config` auch `config.toml` und `~/.local/share/nostar/source/`. Danach `fc-cache`. Zuletzt werden die Verzeichnisse aus `created_dirs` und die nostar-Verzeichnisse unter `XDG_CONFIG_HOME`, `XDG_DATA_HOME` und `XDG_STATE_HOME` gelöscht, aber nur, wenn sie leer sind. Andere Dateien in diesen Verzeichnissen bleiben.
+
+Ausnahme beim Zustand vor dem ersten `apply` (fachl. Spezifikation 13.2, Punkt 6): Eine `.uuid`, die eine ältere fontconfig-Version in `~/.local/share/fonts` angelegt hat, löscht fontconfig ab 2.13.9x bei jedem `fc-cache`-Lauf selbst. Sie gehört nicht zum Zustand, den `remove` wiederherstellt; nostar schreibt keine internen Dateien von fontconfig (beobachtet bei der Abnahme 2026-10-28 mit fontconfig 2.18.3).
 
 ## 11. Logging (`log.rs`)
 
@@ -678,6 +685,7 @@ error: verify: NotoSans-Regular.ttf: "Ärzt*in" shaped as "Ärzt*in", expected "
 error: lock: held by another nostar process: ~/.local/state/nostar/lock
 error: fontconfig: fc-cache exit status 1: <stderr von fc-cache>
 error: fontconfig: ~/.config/fontconfig/conf.d is a file, not a directory
+error: fontconfig: 12 of 42 patched copies not listed after fc-cache, e.g. ~/.local/share/fonts/nostar/usr/share/fonts/noto/NotoSerif-Regular.ttf
 ```
 
 ### 12.1 Exit-Codes

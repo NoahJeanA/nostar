@@ -1,5 +1,6 @@
 //! fontconfig rule, manifest and fontconfig commands (TECHNIK.md 10.3, 10.4).
 
+pub mod desktop;
 pub mod fontconfig;
 pub mod manifest;
 
@@ -17,6 +18,8 @@ pub enum SystemError {
         status: String,
         stderr: String,
     },
+    #[error("{0} of {1} patched copies not listed after fc-cache, e.g. {2}")]
+    Unlisted(usize, usize, PathBuf),
     #[error("{0} is a file, not a directory")]
     NotADirectory(PathBuf),
     #[error("{0}:{1}: {2}")]
@@ -29,7 +32,10 @@ impl SystemError {
     /// `fontconfig` for fontconfig commands and directories (TECHNIK.md 12), `system` otherwise.
     pub fn module(&self) -> &'static str {
         match self {
-            Self::Spawn(..) | Self::Command { .. } | Self::NotADirectory(_) => "fontconfig",
+            Self::Spawn(..)
+            | Self::Command { .. }
+            | Self::NotADirectory(_)
+            | Self::Unlisted(..) => "fontconfig",
             _ => "system",
         }
     }

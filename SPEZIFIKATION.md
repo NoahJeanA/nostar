@@ -146,6 +146,7 @@ Regeln, die das **vorherige Wort** einbeziehen (z.B. „den Lehrer\*innen“ →
 |---|---|
 | Wort kommt in mehreren Stücken an (teilweise fett oder verlinkt, Zeilenumbruch im Wort, ein Zeichen fehlt im Font) | Original bleibt sichtbar |
 | Weiche Trennstriche (U+00AD) im Wort, häufig auf Nachrichtenseiten | Die Regel greift, der unsichtbare Trennstrich bleibt an seiner Stelle (HarfBuzz überspringt ihn beim Vergleich). Steht er direkt am Wortende („Lehrer\*in\u00AD“), bleibt die Form unverändert. |
+| Weicher Trennstrich im Wort, Qt-Programm, Font ohne Glyphe für U+00AD (z.B. Noto Sans Mono) | Qt nimmt den Trennstrich aus einem Ersatzfont und teilt das Wort; die Regeln sehen nur Bruchstücke, es entstehen Teilformen wie „Lehrernen“. GTK und Browser sind nicht betroffen. Behebbar nur durch eine zusätzliche Glyphe (8.1), daher nicht in Version 1 |
 | Programme mit eigenen Fonts (Webfonts, Electron-Apps, PDFs) oder ohne HarfBuzz | Original bleibt sichtbar |
 | Cursor und Markieren | In umgewandelten Wörtern springt der Cursor durch ausgeblendete Zeichen |
 
@@ -197,7 +198,7 @@ Bevor eine Regelliste in Fonts eingebaut wird, muss sie die gesamte Testsammlung
 
 Ermittlung über fontconfig. Zwei Modi:
 
-- **„standard“** (Voreinstellung): die Fonts hinter `sans-serif`, `serif`, `monospace`, die in der Konfiguration genannten Familien (Oberflächen- und Terminalschrift) sowie die Ersatzschriften für Arial, Times New Roman und Courier New. Jeweils **alle Schnitte**.
+- **„standard“** (Voreinstellung): die Fonts hinter `sans-serif`, `serif`, `monospace`, die Oberflächen-, Dokument- und Monospace-Schrift aus den GNOME-Einstellungen (falls vorhanden), die in der Konfiguration genannten Familien (z.B. Terminalschrift) sowie die Ersatzschriften für Arial, Times New Roman und Courier New. Jeweils **alle Schnitte**.
 - **„alle“**: jeder installierte Font, der 7.2 erfüllt
 
 ### 7.2 Ausschlusskriterien
@@ -351,7 +352,7 @@ Paare aus Eingabe und erwarteter Anzeige. Sie enthält mindestens:
 
 `nostar` ist fertig, wenn:
 
-1. Alle Fälle der Testsammlung in einem GTK-Programm, in einem Qt-Programm, in Firefox und in Chrome (mit Systemschriften) exakt wie angegeben angezeigt werden.
+1. Alle Fälle der Testsammlung in einem GTK-Programm, in einem Qt-Programm, in Firefox und in Chrome (mit Systemschriften) exakt wie angegeben angezeigt werden; ausgenommen die Lücke „Qt und Font ohne U+00AD“ aus 4.8.
 2. Kopieren von „Lehrer\*innen“ weiterhin `Lehrer*innen` liefert.
 3. Text ohne Genderformen in Latein, Griechisch und Kyrillisch genauso aussieht wie mit dem Original-Font, inklusive Ligaturen.
 4. Die Grenzen aus 8.3 eingehalten werden.
@@ -361,7 +362,7 @@ Paare aus Eingabe und erwarteter Anzeige. Sie enthält mindestens:
 
 ## 14. Entscheidungen
 
-Punkte 1–8 entschieden am 2026-10-26 (Punkt 5 geändert am 2026-10-27), Punkte 9–11 am 2026-10-27. Technische Abweichungen von dieser Spezifikation stehen in [TECHNIK.md](TECHNIK.md), Abschnitt 15, und sind freigegeben.
+Punkte 1–8 entschieden am 2026-10-26 (Punkt 5 geändert am 2026-10-27), Punkte 9–11 am 2026-10-27, Punkte 12–13 am 2026-10-28. Technische Abweichungen von dieser Spezifikation stehen in [TECHNIK.md](TECHNIK.md), Abschnitt 15, und sind freigegeben.
 
 | # | Frage | Entscheidung |
 |---|---|---|
@@ -376,6 +377,8 @@ Punkte 1–8 entschieden am 2026-10-26 (Punkt 5 geändert am 2026-10-27), Punkte
 | 9 | Feste Formen mit weiblicher Form vorne (`die*der`, `sie*er`) | Nicht in Version 1 (4.6); entschieden 2026-10-27 |
 | 10 | Maß für die Geschwindigkeit | Mehraufwand in ms je MB statt Verhältnis (8.3); entschieden 2026-10-27 |
 | 11 | Binnen-I | Bleibt an, trotz etwa 2–10 % Mehraufwand bei Prosa (Großbuchstabe `I` in „Ihre“, „Ihnen“); entschieden 2026-10-27 |
+| 12 | Qt, weicher Trennstrich und Font ohne Glyphe für U+00AD | Bekannte Lücke (4.8), keine zusätzliche Glyphe; entschieden 2026-10-28 |
+| 13 | Oberflächenschriften im Modus „standard“ | Automatisch aus den GNOME-Einstellungen (7.1); entschieden 2026-10-28 |
 
 ## 15. Quellen
 

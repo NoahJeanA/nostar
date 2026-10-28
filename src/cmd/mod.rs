@@ -12,9 +12,10 @@ use std::collections::BTreeSet;
 use crate::Error;
 use crate::config::{Config, Mode};
 use crate::font::select::Listed;
-use crate::system::fontconfig;
+use crate::system::{desktop, fontconfig};
 
-/// Families whose fonts are candidates in mode `standard` (fachl. Spezifikation 7.1).
+/// Families whose fonts are candidates in mode `standard` (fachl. Spezifikation 7.1), besides
+/// the GNOME fonts.
 const STANDARD: [&str; 6] = [
     "sans-serif",
     "serif",
@@ -30,7 +31,14 @@ pub fn listed(config: &Config) -> Result<Vec<Listed>, Error> {
         Mode::All => fontconfig::list(":")?,
         Mode::Standard => {
             let mut families = BTreeSet::new();
-            for pattern in STANDARD {
+            // The GNOME fonts like the generic names: whatever fontconfig shows for them.
+            let mut patterns: Vec<String> = STANDARD.iter().map(|p| p.to_string()).collect();
+            patterns.extend(
+                desktop::families()
+                    .iter()
+                    .map(|f| fontconfig::family_pattern(f)),
+            );
+            for pattern in &patterns {
                 if let Some(f) = fontconfig::best(pattern)? {
                     families.insert(f.family);
                 }

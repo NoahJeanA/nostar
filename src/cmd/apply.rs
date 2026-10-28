@@ -132,7 +132,22 @@ pub fn apply(paths: &Paths, config: &Config, dry_run: bool) -> Result<ExitCode, 
         .collect();
     changed |= fontconfig::write_rule(&paths.fontconfig_rule(), &originals)?;
     if changed {
-        fontconfig::cache()?;
+        fontconfig::cache_force(&paths.fonts_base())?;
+    }
+    let copies: Vec<&Path> = new_manifest
+        .fonts
+        .iter()
+        .map(|e| e.copy.as_path())
+        .collect();
+    if !copies.is_empty() && !fontconfig::unlisted(&copies)?.is_empty() {
+        // a stale cache from an earlier run
+        fontconfig::cache_force(&paths.fonts_base())?;
+        let missing = fontconfig::unlisted(&copies)?;
+        if let Some(first) = missing.first() {
+            return Err(
+                SystemError::Unlisted(missing.len(), copies.len(), first.to_path_buf()).into(),
+            );
+        }
     }
 
     let patched = jobs.len() - failed.len();
