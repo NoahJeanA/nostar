@@ -221,8 +221,8 @@ fn parse_cases(text: &str, config: &Config, markers: &Markers) -> Result<Cases, 
         if !(2..=3).contains(&cols.len()) {
             return Err(err(format!("expected 2 or 3 columns, got {}", cols.len())));
         }
-        let input = unescape(cols[0]).map_err(&err)?;
-        let expected = unescape(cols[1]).map_err(&err)?;
+        let input = unescape(cols[0]).map_err(err)?;
+        let expected = unescape(cols[1]).map_err(err)?;
         let needs = cols.get(2).copied().unwrap_or("");
         let mut applies = true;
         for need in needs.split(',').filter(|n| !n.is_empty()) {
