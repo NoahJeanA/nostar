@@ -62,13 +62,13 @@ src/
 ├── plan.rs            Regeln → Pässe, Gate- und Baum-Schlüssel (zeichenbasiert)
 ├── font/
 │   ├── mod.rs         Patch eines Fonts: lesen → kompilieren → schreiben → prüfen
-│   ├── select.rs      Kandidaten über fontconfig
+│   ├── select.rs      Kandidaten aus den fontconfig-Einträgen (10.3)
 │   ├── glyphs.rs      Zeichen → Glyphen, Buchstabenmenge, Ausschlussprüfung
 │   ├── compile.rs     Plan → GSUB-Lookups (glyphenbasiert)
 │   ├── gsub.rs        Lookups in bestehende GSUB einfügen, Indizes verschieben
 │   └── verify.rs      Formung mit harfrust, Vergleich Original/Kopie
 ├── system/
-│   ├── fontconfig.rs  99-nostar.conf schreiben, fc-cache
+│   ├── fontconfig.rs  fc-match, fc-list, 99-nostar.conf schreiben, fc-cache
 │   └── manifest.rs    manifest.toml lesen/schreiben
 └── cmd/
     ├── data.rs        nostar data update
@@ -454,7 +454,7 @@ Begründung für Gate und Baum: HarfBuzz prüft an einem Anker alle Regeln, die 
 2. Neue Lookups **vor** alle bestehenden setzen, Reihenfolge: Gate Stamm-Pass, Gate Marker-Pass, Hilfs-Lookups, Knoten und Blätter
 3. Alle bestehenden Lookup-Verweise um die Anzahl neuer Lookups verschieben: Feature-Liste, `SubstLookupRecord` in Typ 5/6 (Formate 1–3, auch innerhalb von Typ 7), Feature-Variationen
 4. **Alle** Lookups als Extension (Typ 7) schreiben. Ohne das lässt sich z.B. JetBrains Mono (460 eigene Lookups) mit dem Wörterbuch nicht mehr schreiben.
-5. Feature `calt`: Hat der Font schon `calt`-Features, werden die zwei Gates **vorne** in jedes davon eingefügt, auch in Ersatz-Features der Feature-Variationen. Ein zweites `calt` würde nicht wirken, weil HarfBuzz je Sprach-Eintrag nur das erste nimmt. Sonst wird ein `calt` mit den zwei Gates angelegt und in allen Script-/Sprach-Einträgen aktiviert (`DFLT` und `latn` anlegen, falls nötig).
+5. Feature `calt`: Hat der Font schon `calt`-Features, werden die zwei Gates **vorne** in jedes davon eingefügt, auch in Ersatz-Features der Feature-Variationen. Ein zweites `calt` im selben Sprach-Eintrag würde nicht wirken, weil HarfBuzz je Sprach-Eintrag nur das erste nimmt. Jeder Script-/Sprach-Eintrag **ohne** `calt` bekommt ein neues `calt`, das nur die zwei Gates enthält; das gilt auch für Fonts ohne jedes `calt`. Beispiel: FreeSerif hat `calt` nur unter `DFLT`, nicht unter `latn`. Gibt es weder `DFLT` noch `latn`, wird `DFLT` angelegt. Ein neues `latn` würde die Features unter `DFLT` für lateinischen Text verdecken.
 6. Die Feature-Liste bleibt nach Tag sortiert. Alle Feature-Indizes werden neu zugeordnet: in Script-/Sprach-Einträgen, beim Pflicht-Feature (`ReqFeatureIndex`) und in Feature-Variationen.
 7. Alle anderen Tabellen unverändert übernehmen, Font mit `write-fonts` schreiben
 
@@ -548,6 +548,83 @@ Die schreibenden Befehle `data update`, `rules build`, `apply` und `remove` hole
 
 Ein Abbruch zwischen 4 und 7 lässt das System funktionsfähig: Neue Kopien ohne Regel in `99-nostar.conf` sind zusätzliche Fonts gleichen Namens. Der nächste `apply` räumt auf.
 
+Ein Font gilt als unverändert, wenn er im Manifest steht, die SHA-256 von Original und `rules.tsv` mit dem Manifest übereinstimmen und die Kopie existiert. Schlägt der Patch eines Fonts fehl, der schon eine Kopie hat, wird die alte Kopie gelöscht, damit das Original sichtbar bleibt (fachl. Spezifikation 9.2). Ändert sich nichts, schreibt `apply` keine Datei und ruft `fc-cache` nicht auf.
+
+`--dry-run` ordnet die Kandidaten ein (patchen, unverändert, übersprungen mit Grund, zu löschende Kopien), patcht aber nicht; ob ein Patch fehlschlagen würde, zeigt es daher nicht.
+
+### 10.3 Kandidaten (`font/select.rs`, `system/fontconfig.rs`)
+
+`system/fontconfig.rs` ruft `fc-match` und `fc-list` auf (`--format` mit Datei, erster Familienname, `spacing`). Modus `standard`: Familien von `fc-match` für `sans-serif`, `serif`, `monospace`, `Arial`, `Times New Roman`, `Courier New` sowie die Familien aus `families`; davon alle Dateien über `fc-list :family=<Familie>`. Modus `all`: alle Dateien von `fc-list`.
+
+Nach dem ersten `apply` blendet fontconfig die Originale aus und liefert die Kopien. Eine Datei unter `~/.local/share/fonts/nostar/` wird deshalb über den gespiegelten Pfad auf ihr Original zurückgeführt. Kopien, deren Original fehlt oder nicht mehr ausgewählt ist, werden gelöscht.
+
+`font/select.rs` prüft fachl. Spezifikation 7.2 in dieser Reihenfolge, mit dem Grund für die Zusammenfassung:
+
+| Grund | Bedingung |
+|---|---|
+| `collection` | `.ttc`, `.otc` |
+| `format` | nicht `.ttf` oder `.otf` (z.B. `.pcf`, `.bdf`, `.pfb`, `.woff`) |
+| `excluded` | Familie oder Pfad in `exclude` |
+| `monospace` | `skip_monospace` und `spacing=100` |
+| `unreadable` | Datei oder `cmap` nicht lesbar |
+| `no latin letters` | weniger als 20 Buchstaben oder ein Buchstabe aus a–z, A–Z, ä, ö, ü, Ä, Ö, Ü, ß fehlt |
+| `no gender marker` | keines der aktiven Genderzeichen |
+| `shared glyphs` | ein aktives Genderzeichen, `-` oder (bei `/-`) `/` teilt seine Glyphe mit einem Buchstaben, mit U+00AD oder mit einem dieser Zeichen; die Glyphenklassen (9.4) brauchen sie getrennt. Beispiele: Icon-Fonts wie Font Awesome, pixelon (`-` und U+00AD) |
+
+### 10.4 Manifest und fontconfig-Regel (`system/`)
+
+```toml
+rules = "<sha256 von rules.tsv>"
+created_dirs = ["/home/u/.local/share/fonts", "/home/u/.local/share/fonts/nostar"]
+
+[[font]]
+original = "/usr/share/fonts/noto/NotoSans-Regular.ttf"
+original_sha256 = "…"
+copy = "/home/u/.local/share/fonts/nostar/usr/share/fonts/noto/NotoSans-Regular.ttf"
+```
+
+Ist `~/.config/fontconfig` oder `…/conf.d` eine Datei statt eines Verzeichnisses, bricht `apply` (auch mit `--dry-run`) vor jeder Änderung mit Exit-Code 2 ab. Die Datei gehört dem Nutzer, nostar verschiebt oder ändert sie nicht.
+
+`created_dirs` sind die Verzeichnisse, die `apply` angelegt hat (`~/.local/share/fonts`, `…/fonts/nostar`, `~/.config/fontconfig`, `…/conf.d`). `remove` löscht sie, wenn sie leer sind; so ist das Home-Verzeichnis danach im Zustand vor dem ersten `apply` (fachl. Spezifikation 13.2, Punkt 6).
+
+`99-nostar.conf` blendet jedes gepatchte Original über seinen exakten Pfad aus, ohne Glob-Sonderzeichen:
+
+```xml
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<!-- written by nostar, do not edit; nostar remove deletes it -->
+<fontconfig>
+  <selectfont>
+    <rejectfont>
+      <pattern><patelt name="file"><string>/usr/share/fonts/noto/NotoSans-Regular.ttf</string></patelt></pattern>
+    </rejectfont>
+  </selectfont>
+</fontconfig>
+```
+
+### 10.5 `status`
+
+```
+$ nostar status
+active      yes, 142 fonts, ~/.config/fontconfig/conf.d/99-nostar.conf
+dictionary  entgendert@febca80
+rules       15071 (stage 1: 795, 2: 13850, 4: 420, 5: 6), current
+patched     142
+outdated    1
+  /usr/share/fonts/noto/NotoSans-Bold.ttf: original changed
+new         2
+  /usr/share/fonts/TTF/Foo.ttf
+sans-serif  Noto Sans  ~/.local/share/fonts/nostar/usr/share/fonts/noto/NotoSans-Regular.ttf  (patched copy)
+serif       Noto Serif  /usr/share/fonts/noto/NotoSerif-Regular.ttf
+monospace   JetBrains Mono  ~/.local/share/fonts/nostar/…  (patched copy)
+```
+
+Gründe für `outdated`: `original changed`, `original missing`, `rules changed`, `copy missing`.
+
+### 10.6 `remove`
+
+Löscht `~/.local/share/fonts/nostar/` vollständig, `99-nostar.conf`, `rules.tsv`, Manifest, Log samt Sicherung und Sperrdatei; ohne `--keep-config` auch `config.toml` und `~/.local/share/nostar/source/`. Danach `fc-cache`. Zuletzt werden die Verzeichnisse aus `created_dirs` und die nostar-Verzeichnisse unter `XDG_CONFIG_HOME`, `XDG_DATA_HOME` und `XDG_STATE_HOME` gelöscht, aber nur, wenn sie leer sind. Andere Dateien in diesen Verzeichnissen bleiben.
+
 ## 11. Logging (`log.rs`)
 
 - Schnittstelle: Crate `log`; eigener Logger in rund 60 Zeilen
@@ -600,6 +677,7 @@ error: font: NotoSans-Regular.ttf: GSUB: subtable of lookup 12 exceeds 64 KiB af
 error: verify: NotoSans-Regular.ttf: "Ärzt*in" shaped as "Ärzt*in", expected "Arzt"
 error: lock: held by another nostar process: ~/.local/state/nostar/lock
 error: fontconfig: fc-cache exit status 1: <stderr von fc-cache>
+error: fontconfig: ~/.config/fontconfig/conf.d is a file, not a directory
 ```
 
 ### 12.1 Exit-Codes
@@ -630,7 +708,7 @@ Setzt fachl. Spezifikation 13 um.
 |---|---|---|---|
 | Unit | jeweils im Modul | decode (7.2), Edit-Skripte (9.1), Klassenbildung, Index-Verschiebung (9.5), Konfigprüfung | `cargo test` |
 | Regeln | `tests/engine.rs` | Referenz-Umsetzung (8.5) mit festem Wörterbuch-Ausschnitt gegen `cases.tsv` | `cargo test`, `nostar rules build`, `nostar rules test` |
-| Font | `tests/font.rs` | Fixture-Fonts patchen, Prüfung 9.6 muss bestehen: Noto Sans (Ligaturen), Font ohne GSUB, Adwaita Sans (variabel, eigenes `calt`), Rubik (variabel, Feature-Variationen) | `cargo test` |
+| Font | `tests/font.rs` | Fixture-Fonts patchen, Prüfung 9.6 muss bestehen: Noto Sans (Ligaturen), Font ohne GSUB, Adwaita Sans (variabel, eigenes `calt`), Rubik (variabel, Feature-Variationen), Adwaita mit `calt` nur unter `DFLT`; `-` und U+00AD auf einer Glyphe ergibt „nicht geeignet“ | `cargo test` |
 | Font im Betrieb | `verify.rs` | Prüfung 9.6 an jedem gepatchten Font | `nostar apply` |
 | Font mit Wörterbuch | `tests/font.rs`, `#[ignore]` | Fixture-Font mit vollständigem Wörterbuch patchen; jede Wörterbuchform in allen Varianten aus 8.2 (z.B. `Ärzt*innen`, `Ärzt/-in`, `ÄrztInnen`, `Oberärzt*in`, `ÄRZT*INNEN`, `Ärzt_innenkammer`) formen und mit der Referenz-Umsetzung vergleichen. Wörterbuch-Pfad über `NOSTAR_TEST_DICTIONARY` | `cargo test -- --ignored` |
 | Geschwindigkeit | `tools/bench.sh <dictionary.js> <font>…` | Fonts mit vollständigem Wörterbuch patchen (Test `bench_fonts`), Testfälle und alle Wörterbuchformen mit HarfBuzz (C) prüfen, Referenztexte aus `tests/bench/` mit Original und Kopie formen, Mehraufwand je MB gegen fachl. Spezifikation 8.3 | vor Freigabe, nach Änderungen an 9 |

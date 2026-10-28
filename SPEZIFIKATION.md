@@ -206,6 +206,7 @@ Ein Font wird **nicht** gepatcht, wenn:
 - er weniger als 20 Buchstaben im Sinne von Abschnitt 3 abdeckt (Symbol-, Icon-, Emoji- und Fonts für andere Schriftsysteme),
 - ihm Buchstaben fehlen, die für die deutsche Regelliste nötig sind (a–z, A–Z, ä, ö, ü, Ä, Ö, Ü, ß),
 - er kein einziges der aktiven Genderzeichen enthält,
+- ein Genderzeichen oder der Bindestrich dieselbe Glyphe wie ein Buchstabe oder der weiche Trennstrich hat (z.B. Icon-Fonts); die Regeln könnten sie nicht unterscheiden,
 - er eine Font-Sammlung (`.ttc`/`.otc`) oder ein Bitmap-Format (`.pcf`, `.bdf`) ist,
 - er in der Konfiguration ausgeschlossen ist,
 - er bereits ein gepatchter Font von `nostar` ist.

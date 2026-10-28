@@ -17,6 +17,8 @@ use write_fonts::types::Tag;
 use super::FontError;
 
 const CALT: Tag = Tag::new(b"calt");
+const DFLT: Tag = Tag::new(b"DFLT");
+const LATN: Tag = Tag::new(b"latn");
 
 /// Font with `new` lookups in front of the existing ones and the two gates (the first two
 /// lookups) in `calt`; all other tables unchanged.
@@ -54,7 +56,8 @@ pub fn insert(font: &FontRef, new: Vec<SubstitutionLookup>) -> Result<Vec<u8>, F
     // lookups in front of a large existing GSUB.
     *lookup_list = SubstitutionLookupList::new(all.into_iter().map(to_extension).collect());
 
-    let (remap, new_calt) = features(&mut gsub, n)?;
+    let needs_calt = lang_sys_without_calt(&gsub);
+    let (remap, new_calt) = features(&mut gsub, n, needs_calt)?;
     feature_variations(&mut gsub, n, &remap)?;
     scripts(&mut gsub, &remap, new_calt)?;
 
@@ -65,9 +68,58 @@ pub fn insert(font: &FontRef, new: Vec<SubstitutionLookup>) -> Result<Vec<u8>, F
     Ok(b.build())
 }
 
-/// Shifts lookup indices, puts the gates in front of every `calt` and adds a `calt` if
-/// there is none. Returns the old -> new feature index map and the index of a new `calt`.
-fn features(gsub: &mut Gsub, n: u16) -> Result<(HashMap<u16, u16>, Option<u16>), FontError> {
+/// True if a language system has no `calt` or there is no `DFLT` or `latn` script, so a
+/// `calt` with only the gates is needed (TECHNIK.md 9.5).
+fn lang_sys_without_calt(gsub: &Gsub) -> bool {
+    let calt = calt_indices(gsub);
+    let Some(sl) = gsub.script_list.as_ref() else {
+        return true;
+    };
+    if !sl
+        .script_records
+        .iter()
+        .any(|r| r.script_tag == DFLT || r.script_tag == LATN)
+    {
+        return true;
+    }
+    let lacks = |ls: &LangSys| !has_calt(ls, |i| calt.contains(&i));
+    sl.script_records.iter().any(|sr| {
+        sr.script.default_lang_sys.as_ref().is_some_and(lacks)
+            || sr
+                .script
+                .lang_sys_records
+                .iter()
+                .any(|lr| lacks(&lr.lang_sys))
+    })
+}
+
+fn calt_indices(gsub: &Gsub) -> Vec<u16> {
+    gsub.feature_list
+        .as_ref()
+        .map(|fl| {
+            fl.feature_records
+                .iter()
+                .enumerate()
+                .filter(|(_, r)| r.feature_tag == CALT)
+                .map(|(i, _)| i as u16)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn has_calt(ls: &LangSys, is_calt: impl Fn(u16) -> bool) -> bool {
+    ls.feature_indices.iter().any(|&i| is_calt(i))
+        || (ls.required_feature_index != 0xFFFF && is_calt(ls.required_feature_index))
+}
+
+/// Shifts lookup indices, puts the gates in front of every `calt` and adds a `calt` with
+/// only the gates if `needs_calt`. Returns the old -> new feature index map and the index
+/// of the new `calt`.
+fn features(
+    gsub: &mut Gsub,
+    n: u16,
+    needs_calt: bool,
+) -> Result<(HashMap<u16, u16>, Option<u16>), FontError> {
     let fl = gsub
         .feature_list
         .as_mut()
@@ -81,7 +133,7 @@ fn features(gsub: &mut Gsub, n: u16) -> Result<(HashMap<u16, u16>, Option<u16>),
         }
         records.push((r.feature_tag, f, Some(i as u16)));
     }
-    if !records.iter().any(|r| r.0 == CALT) {
+    if needs_calt {
         records.push((CALT, Feature::new(None, vec![0, 1]), None));
     }
     // The feature list stays sorted by tag.
@@ -147,26 +199,31 @@ fn feature_variations(gsub: &mut Gsub, n: u16, remap: &HashMap<u16, u16>) -> Res
     Ok(())
 }
 
-/// New feature indices in every language system; a new `calt` is enabled everywhere,
-/// with `DFLT` and `latn` added if missing.
+/// New feature indices in every language system; the new `calt` goes into every language
+/// system without `calt`, with `DFLT` added if there is neither `DFLT` nor `latn`.
 fn scripts(
     gsub: &mut Gsub,
     remap: &HashMap<u16, u16>,
     new_calt: Option<u16>,
 ) -> Result<(), FontError> {
+    // the font's own `calt` features, by new index
+    let mut calt = calt_indices(gsub);
+    calt.retain(|&i| Some(i) != new_calt);
     let sl = gsub
         .script_list
         .as_mut()
         .ok_or_else(|| FontError::Unsupported("GSUB without script list".into()))?;
-    if new_calt.is_some() {
-        for tag in [Tag::new(b"DFLT"), Tag::new(b"latn")] {
-            if !sl.script_records.iter().any(|r| r.script_tag == tag) {
-                sl.script_records.push(ScriptRecord::new(
-                    tag,
-                    Script::new(Some(LangSys::new(vec![])), vec![]),
-                ));
-            }
-        }
+    if new_calt.is_some()
+        && !sl
+            .script_records
+            .iter()
+            .any(|r| r.script_tag == DFLT || r.script_tag == LATN)
+    {
+        // Only a script of its own: a new `latn` would hide the features under `DFLT`.
+        sl.script_records.push(ScriptRecord::new(
+            DFLT,
+            Script::new(Some(LangSys::new(vec![])), vec![]),
+        ));
         sl.script_records.sort_by_key(|r| r.script_tag);
     }
     let fix = |ls: &mut LangSys| -> Result<(), FontError> {
@@ -182,7 +239,9 @@ fn scripts(
         if ls.required_feature_index != 0xFFFF {
             ls.required_feature_index = map(ls.required_feature_index)?;
         }
-        if let Some(c) = new_calt {
+        if let Some(c) = new_calt
+            && !has_calt(ls, |i| calt.contains(&i))
+        {
             ls.feature_indices.push(c);
             ls.feature_indices.sort();
         }

@@ -13,12 +13,14 @@ pub mod paths;
 pub mod plan;
 pub mod rules;
 pub mod source;
+pub mod system;
 
 use config::ConfigError;
 use fsutil::FsError;
 use paths::PathsError;
 use rules::RulesError;
 use source::SourceError;
+use system::SystemError;
 
 /// All errors that abort a command (exit code 2, TECHNIK.md 12.1).
 #[derive(Debug, thiserror::Error)]
@@ -33,9 +35,8 @@ pub enum Error {
     Source(#[from] SourceError),
     #[error(transparent)]
     Rules(#[from] RulesError),
-    /// Command defined but not built yet (milestones 5 and 6).
-    #[error("{0}: not implemented")]
-    NotImplemented(&'static str),
+    #[error(transparent)]
+    System(#[from] SystemError),
 }
 
 impl Error {
@@ -48,7 +49,7 @@ impl Error {
             Self::Fs(_) => "fs",
             Self::Source(_) => "source",
             Self::Rules(_) => "rules",
-            Self::NotImplemented(_) => "cmd",
+            Self::System(e) => e.module(),
         }
     }
 }

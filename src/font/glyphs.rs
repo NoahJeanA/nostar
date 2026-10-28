@@ -2,6 +2,7 @@
 
 use std::collections::{BTreeSet, HashMap};
 
+use read_fonts::tables::cmap::PlatformId;
 use read_fonts::{FontRef, TableProvider};
 use write_fonts::types::GlyphId16;
 
@@ -29,6 +30,14 @@ impl Glyphs {
         let mut cmap = HashMap::new();
         let mut letters = BTreeSet::new();
         for record in cmap_table.encoding_records() {
+            // Only Unicode subtables; a Mac Roman table maps byte codes, not characters.
+            let unicode = matches!(
+                (record.platform_id(), record.encoding_id()),
+                (PlatformId::Unicode, _) | (PlatformId::Windows, 1 | 10)
+            );
+            if !unicode {
+                continue;
+            }
             let Ok(sub) = record.subtable(cmap_table.offset_data()) else {
                 continue;
             };
@@ -72,6 +81,36 @@ impl Glyphs {
         }
     }
 
+    /// A gender marker, `-` or `/` whose glyph is also the glyph of a letter, of U+00AD or of
+    /// another of these characters; the GSUB classes need them apart (fachl. Spezifikation 7.2).
+    fn shared(&self, markers: &Markers) -> Option<(char, char)> {
+        let mut own = markers.gender.clone();
+        own.push('-');
+        if markers.slash_hyphen {
+            own.push('/');
+        }
+        own.sort();
+        own.dedup();
+        let mut by_glyph = HashMap::new();
+        for c in own {
+            if let Some(g) = self.get(c)
+                && let Some(other) = by_glyph.insert(g, c)
+            {
+                return Some((other, c));
+            }
+        }
+        let mut others: Vec<(char, GlyphId16)> = self
+            .cmap
+            .iter()
+            .filter(|(c, _)| is_letter(**c) || **c == '\u{AD}')
+            .map(|(c, g)| (*c, *g))
+            .collect();
+        others.sort();
+        others
+            .into_iter()
+            .find_map(|(c, g)| by_glyph.get(&g).map(|own| (*own, c)))
+    }
+
     /// One character for a glyph, to describe shaping results in messages.
     pub fn reverse(&self) -> HashMap<GlyphId16, char> {
         let mut rev = HashMap::new();
@@ -85,17 +124,32 @@ impl Glyphs {
 }
 
 /// Why a font is not patched (fachl. Spezifikation 7.2, glyph part).
-pub fn check(glyphs: &Glyphs, active: &Markers) -> Result<(), String> {
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum Unsuitable {
+    #[error("{0} letters")]
+    FewLetters(usize),
+    #[error("no glyph for U+{:04X}", u32::from(*.0))]
+    MissingLetter(char),
+    #[error("no gender marker")]
+    NoMarker,
+    #[error("U+{:04X} and U+{:04X} share a glyph", u32::from(*.0), u32::from(*.1))]
+    SharedGlyph(char, char),
+}
+
+pub fn check(glyphs: &Glyphs, active: &Markers) -> Result<(), Unsuitable> {
     let count = glyphs.letter_count();
     if count < MIN_LETTERS {
-        return Err(format!("{count} letters"));
+        return Err(Unsuitable::FewLetters(count));
     }
     if let Some(c) = REQUIRED.chars().find(|c| !glyphs.has(*c)) {
-        return Err(format!("no glyph for U+{:04X}", u32::from(c)));
+        return Err(Unsuitable::MissingLetter(c));
     }
     let markers = glyphs.markers(active);
     if markers.gender.is_empty() && !markers.slash_hyphen {
-        return Err("no gender marker".into());
+        return Err(Unsuitable::NoMarker);
+    }
+    if let Some((a, b)) = glyphs.shared(&markers) {
+        return Err(Unsuitable::SharedGlyph(a, b));
     }
     Ok(())
 }

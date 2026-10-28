@@ -4,6 +4,7 @@
 pub mod compile;
 pub mod glyphs;
 pub mod gsub;
+pub mod select;
 pub mod verify;
 
 use read_fonts::FontRef;
@@ -49,7 +50,7 @@ pub fn patch(original: &[u8], plan: &Plan, config: &Config) -> Result<Patched, F
     let font = FontRef::new(original).map_err(|e| FontError::Read(e.to_string()))?;
     let g = glyphs::Glyphs::new(&font)?;
     let active = Markers::from_config(config);
-    glyphs::check(&g, &active).map_err(FontError::NotSuitable)?;
+    glyphs::check(&g, &active).map_err(|e| FontError::NotSuitable(e.to_string()))?;
     let markers = g.markers(&active);
     let compiled = compile::compile(plan, &g, &markers)?;
     let lookups = compiled.lookups.len();

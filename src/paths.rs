@@ -40,6 +40,14 @@ impl Paths {
         })
     }
 
+    /// Paths below `home` without reading the environment.
+    #[cfg(test)]
+    pub fn from_vars_for_tests(home: &Path) -> Self {
+        let home = home.as_os_str().to_os_string();
+        Self::from_vars(|name| (name == "HOME").then(|| home.clone()))
+            .unwrap_or_else(|_| unreachable!("absolute test home"))
+    }
+
     pub fn config_file(&self) -> PathBuf {
         self.config.join("nostar/config.toml")
     }
@@ -63,6 +71,39 @@ impl Paths {
     pub fn patched_font(&self, original: &Path) -> PathBuf {
         let relative = original.strip_prefix("/").unwrap_or(original);
         self.fonts_dir().join(relative)
+    }
+
+    /// Original of a patched copy: the inverse of [`Self::patched_font`].
+    pub fn original_of(&self, copy: &Path) -> Option<PathBuf> {
+        copy.strip_prefix(self.fonts_dir())
+            .ok()
+            .map(|rel| Path::new("/").join(rel))
+    }
+
+    /// `~/.local/share/fonts`, the user font directory fontconfig reads.
+    pub fn fonts_base(&self) -> PathBuf {
+        self.data.join("fonts")
+    }
+
+    pub fn source_dir(&self) -> PathBuf {
+        self.data.join("nostar/source")
+    }
+
+    /// The nostar directories below the three XDG bases.
+    pub fn own_dirs(&self) -> [PathBuf; 3] {
+        [
+            self.config.join("nostar"),
+            self.data.join("nostar"),
+            self.state.join("nostar"),
+        ]
+    }
+
+    /// `~/.config/fontconfig` and its `conf.d`.
+    pub fn fontconfig_dirs(&self) -> [PathBuf; 2] {
+        [
+            self.config.join("fontconfig"),
+            self.config.join("fontconfig/conf.d"),
+        ]
     }
 
     pub fn fontconfig_rule(&self) -> PathBuf {
@@ -170,6 +211,14 @@ mod tests {
                 "/home/u/.local/share/fonts/nostar/usr/share/fonts/noto/NotoSans-Regular.ttf"
             )
         );
+    }
+
+    #[test]
+    fn original_of_copy() {
+        let p = paths(&[("HOME", "/home/u")]).unwrap();
+        let orig = Path::new("/usr/share/fonts/noto/NotoSans-Regular.ttf");
+        assert_eq!(p.original_of(&p.patched_font(orig)).as_deref(), Some(orig));
+        assert_eq!(p.original_of(orig), None);
     }
 
     #[test]

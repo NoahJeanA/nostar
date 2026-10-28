@@ -130,8 +130,9 @@ fn run(command: &Command, paths: &Paths) -> Result<ExitCode, Error> {
             action: RulesAction::Test,
         } => return nostar::cmd::rules::test(paths, &config),
         Command::Show { text } => nostar::cmd::show::show(paths, &config, text)?,
-        // Arrive with milestone 6.
-        _ => return Err(Error::NotImplemented(command.name())),
+        Command::Apply { dry_run } => return nostar::cmd::apply::apply(paths, &config, *dry_run),
+        Command::Status => nostar::cmd::status::status(paths, &config)?,
+        Command::Remove { keep_config } => nostar::cmd::remove::remove(paths, *keep_config)?,
     }
     Ok(ExitCode::SUCCESS)
 }

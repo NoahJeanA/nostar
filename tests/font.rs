@@ -252,3 +252,58 @@ fn bench_fonts() {
     }
     std::fs::write(out.join("marked.txt"), marked).unwrap();
 }
+
+/// `calt` only under `DFLT`, not under `latn` (as in FreeSerif): the rules must still apply.
+#[test]
+fn latn_without_calt() {
+    use write_fonts::from_obj::ToOwnedTable;
+    use write_fonts::tables::gsub::Gsub;
+    let font = FontRef::new(ADWAITA).unwrap();
+    let mut gsub: Gsub = font.gsub().unwrap().to_owned_table();
+    let fl = gsub.feature_list.as_ref().unwrap();
+    let calt: Vec<u16> = (0..fl.feature_records.len() as u16)
+        .filter(|&i| fl.feature_records[i as usize].feature_tag == Tag::new(b"calt"))
+        .collect();
+    assert!(!calt.is_empty());
+    let sl = gsub.script_list.as_mut().unwrap();
+    let latn = sl
+        .script_records
+        .iter_mut()
+        .find(|r| r.script_tag == Tag::new(b"latn"))
+        .unwrap();
+    let ls = latn.script.default_lang_sys.as_mut().unwrap();
+    ls.feature_indices.retain(|i| !calt.contains(i));
+    for lr in latn.script.lang_sys_records.iter_mut() {
+        lr.lang_sys.feature_indices.retain(|i| !calt.contains(i));
+    }
+    let mut b = FontBuilder::new();
+    b.add_table(&gsub).unwrap();
+    b.copy_missing_tables(font);
+    patch_and_check(&b.build());
+}
+
+/// `-` and U+00AD on one glyph (as in pixelon): not suitable, no compile error.
+#[test]
+fn shared_glyph_not_suitable() {
+    use write_fonts::tables::cmap::Cmap;
+    let font = FontRef::new(NOTO).unwrap();
+    let glyphs = Glyphs::new(&font).unwrap();
+    let hyphen = glyphs.get('-').unwrap();
+    let cmap = font.cmap().unwrap();
+    let mut map: Vec<(char, write_fonts::types::GlyphId)> = ('\0'..='\u{FFFF}')
+        .filter(|c| *c != '\u{AD}')
+        .filter_map(|c| Some((c, cmap.map_codepoint(c)?)))
+        .collect();
+    map.push(('\u{AD}', hyphen.into()));
+    map.sort();
+    let mut b = FontBuilder::new();
+    b.add_table(&Cmap::from_mappings(map).unwrap()).unwrap();
+    b.copy_missing_tables(font);
+    let config = Config::default();
+    let (_, plan) = fixture_rules(&config);
+    match font::patch(&b.build(), &plan, &config) {
+        Err(font::FontError::NotSuitable(e)) => assert_eq!(e, "U+002D and U+00AD share a glyph"),
+        Err(e) => panic!("{e}"),
+        Ok(_) => panic!("patched"),
+    }
+}
