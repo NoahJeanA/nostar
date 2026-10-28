@@ -1,73 +1,66 @@
 # nostar
 
-Zeigt gegenderte Wörter auf dem ganzen Linux-Desktop im generischen Maskulinum an, ohne Browser-Erweiterung.
+[Deutsch](README.de.md)
 
-![Vorher und nachher](img/before-after.png)
+Displays German gender forms on the whole Linux desktop in the generic masculine, without a browser extension.
 
-`nostar` ändert keinen Text. Es baut Regeln in Kopien deiner Schriftarten ein. Beim Zeichnen wird aus `Lehrer*innen` dann „Lehrer“, aus `Ärzt:innen` „Ärzte“. Kopieren, Suchen und Speichern sehen weiterhin den Originaltext.
+![Before and after](img/before-after.png)
 
-> Status: Version 1, abgenommen am 2026-10-28 (GTK, Qt, Firefox, Chrome).
+`nostar` does not change any text. It builds rules into copies of your fonts (OpenType `calt`), so `Lehrer*innen` is drawn as "Lehrer" and `Ärzt:innen` as "Ärzte". Copying, searching and saving still see the original text.
 
-## So funktioniert es
+1. A dictionary of about 4,500 German person nouns ([Entgendert](https://github.com/janduettmann/Entgendert), from Wiktionary) becomes a rule list.
+2. The rules go into copies of your fonts under `~/.local/share/fonts/nostar/`.
+3. A fontconfig rule makes programs use the copies instead of the originals.
 
-![Ablauf](img/pipeline.svg)
-
-1. Ein Wörterbuch mit ~4.500 Personenbezeichnungen ([Entgendert](https://github.com/janduettmann/Entgendert), aus Wiktionary) wird zu einer Regelliste.
-2. Die Regeln landen als OpenType-Feature `calt` in Kopien deiner Fonts unter `~/.local/share/fonts/nostar/`.
-3. Eine fontconfig-Regel sorgt dafür, dass Programme die Kopien statt der Originale verwenden.
-
-Systemdateien werden nicht verändert, root-Rechte sind nicht nötig.
+No system files are changed and no root rights are needed.
 
 ## Installation
 
-Voraussetzungen: Rust ab 1.89, fontconfig (`fc-list`, `fc-match`, `fc-cache`), `curl`.
+- Debian, Ubuntu: `.deb` from the [releases page](https://github.com/NoahJeanA/nostar/releases)
+- Fedora, openSUSE: `.rpm` from the releases page
+- Arch Linux: AUR package `nostar` or `nostar-bin`
+- With Rust 1.89 or later: `cargo install nostar`
+
+Needed at runtime: fontconfig (`fc-list`, `fc-match`, `fc-cache`) and `curl`; `gsettings` is optional (GNOME fonts).
+
+Run `nostar remove` before uninstalling the package: the package only removes the program, not the copies in your home directory.
+
+## Usage
 
 ```sh
-cargo install --path .   # installiert ~/.cargo/bin/nostar
+nostar data update      # download the dictionary (fixed version, checksum)
+nostar rules build      # build and test the rule list
+nostar apply            # patch fonts and activate them
 ```
 
-## Benutzung
+Then restart running programs.
 
 ```sh
-nostar data update      # Wörterbuch laden (feste Version, Prüfsumme)
-nostar rules build      # Regelliste erzeugen und testen
-nostar apply            # Fonts patchen und einrichten
+nostar show "jede*r Kolleg*in"   # what would be displayed? -> jeder Kollege
+nostar status                    # what is patched, what is outdated?
+nostar remove                    # undo everything
 ```
 
-Danach laufende Programme neu starten. Nach Updates der System-Schriften zeigt `nostar status` veraltete Kopien; `nostar apply` aktualisiert sie.
+Configuration: `~/.config/nostar/config.toml`, see [TECHNIK.md](TECHNIK.md), section 5.
 
-```sh
-nostar show "jede*r Kolleg*in"   # Was würde angezeigt? -> jeder Kollege
-nostar status                    # Was ist gepatcht, was ist veraltet?
-nostar remove                    # Alles rückgängig machen
-```
+## Limits
 
-## Konfiguration
+- Works only where programs use system fonts. Web fonts, PDFs, Electron apps and text in images stay unchanged.
+- No grammar: "mit den Lehrer\*innen" becomes "mit den Lehrer".
+- A word drawn in pieces (partly bold, line break inside) is not changed.
 
-`~/.config/nostar/config.toml`. Alle Schlüssel sind optional.
+## Fonts
 
-```toml
-families = ["JetBrains Mono"]                   # zusätzlich zu sans-serif/serif/monospace und den GNOME-Schriften
-markers  = ["*", ":", "_", "·", "/", "/-"]
-fallback = "cut"                                # unbekannte Wörter: "cut" | "marker" | "off"
+`nostar` modifies copies of your installed fonts and keeps their names. The copies are for your own use only; do not pass them on. Some licenses (e.g. the OFL with a Reserved Font Name, as for Liberation) allow modified versions only under a different name. Use `exclude` for fonts you may not modify.
 
-[words.Freund]                                  # eigene Wörter
-singular = "Freund"
-plural   = "Freunde"
-```
+## Documentation
 
-## Grenzen
+The specification ([SPEZIFIKATION.md](SPEZIFIKATION.md)) and the technical design ([TECHNIK.md](TECHNIK.md)) are in German.
 
-- Wirkt nur, wo Programme Systemschriften nutzen. Webfonts, PDFs, Electron-Apps und Text in Bildern bleiben unverändert.
-- Keine Grammatik: „mit den Lehrer\*innen“ wird zu „mit den Lehrer“.
-- Wird ein Wort in Stücken gezeichnet (teilweise fett, Zeilenumbruch), greift die Regel nicht.
-- Qt-Programme mit einem Font ohne Glyphe für den weichen Trennstrich (z.B. Noto Sans Mono): Wörter mit weichem Trennstrich werden nur teilweise umgewandelt.
+## License
 
-## Dokumentation
+`nostar`: GPL-3.0-or-later, see [LICENSE](LICENSE).
 
-- [SPEZIFIKATION.md](SPEZIFIKATION.md): was das Programm tut
-- [TECHNIK.md](TECHNIK.md): wie es gebaut ist
+Dictionary data: CC BY-SA 4.0 (Entgendert, Wiktionary). It is downloaded by `data update` and not distributed with `nostar`.
 
-## Lizenz
-
-Wörterbuchdaten: CC BY-SA 4.0 (Entgendert, Wiktionary). Sie werden bei `data update` geladen und nicht mit `nostar` verteilt.
+Test data with their own licenses: fonts in `tests/fixtures/` (OFL, see `OFL.txt`), dictionary excerpt `tests/fixtures/dictionary.js` (CC BY-SA 4.0), reference texts in `tests/bench/` (CC BY-SA 3.0 and PSF, see `tests/bench/README.md`).
