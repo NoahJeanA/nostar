@@ -15,8 +15,8 @@ pkgbase = nostar-bin
 	provides = nostar
 	conflicts = nostar
 	source_x86_64 = https://github.com/NoahJeanA/nostar/releases/download/v0.1.0/nostar-0.1.0-x86_64-unknown-linux-gnu.tar.gz
-	sha256sums_x86_64 = SKIP
+	sha256sums_x86_64 = 213a45adecfdcb0a51a0922968fa664c988d4ef2ada12bcbdfd1d5af65eaa04d
 	source_aarch64 = https://github.com/NoahJeanA/nostar/releases/download/v0.1.0/nostar-0.1.0-aarch64-unknown-linux-gnu.tar.gz
-	sha256sums_aarch64 = SKIP
+	sha256sums_aarch64 = a1a24f9a192d22208ab863f64c55e20a93eed14933a4f386df4ca7f09dccd01f
 
 pkgname = nostar-bin

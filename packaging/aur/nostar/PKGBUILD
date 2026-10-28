@@ -12,7 +12,7 @@ makedepends=('cargo')
 optdepends=('glib2: GNOME fonts in mode standard (gsettings)')
 install=nostar.install
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('32b0dfa86083fd6df19c54dfd224a288218116acf1267f19de791e9e985ea606')
 
 prepare() {
   cd "$pkgname-$pkgver"

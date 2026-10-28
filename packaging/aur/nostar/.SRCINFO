@@ -14,6 +14,6 @@ pkgbase = nostar
 	depends = glibc
 	optdepends = glib2: GNOME fonts in mode standard (gsettings)
 	source = nostar-0.1.0.tar.gz::https://github.com/NoahJeanA/nostar/archive/refs/tags/v0.1.0.tar.gz
-	sha256sums = SKIP
+	sha256sums = 32b0dfa86083fd6df19c54dfd224a288218116acf1267f19de791e9e985ea606
 
 pkgname = nostar

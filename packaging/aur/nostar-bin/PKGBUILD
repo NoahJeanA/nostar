@@ -15,8 +15,8 @@ conflicts=("$_pkgname")
 install=nostar.install
 source_x86_64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-x86_64-unknown-linux-gnu.tar.gz")
 source_aarch64=("$url/releases/download/v$pkgver/$_pkgname-$pkgver-aarch64-unknown-linux-gnu.tar.gz")
-sha256sums_x86_64=('SKIP')
-sha256sums_aarch64=('SKIP')
+sha256sums_x86_64=('213a45adecfdcb0a51a0922968fa664c988d4ef2ada12bcbdfd1d5af65eaa04d')
+sha256sums_aarch64=('a1a24f9a192d22208ab863f64c55e20a93eed14933a4f386df4ca7f09dccd01f')
 
 package() {
   cd "$_pkgname-$pkgver-$CARCH-unknown-linux-gnu"
