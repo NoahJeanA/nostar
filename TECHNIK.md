@@ -1,6 +1,6 @@
 # Technische Spezifikation: `nostar`
 
-Status: Entwurf 2 · Stand: 2026-10-27 · Grundlage: [SPEZIFIKATION.md](SPEZIFIKATION.md) (Entwurf 3)
+Status: Version 1, umgesetzt und abgenommen · Stand: 2026-10-28 · Grundlage: [SPEZIFIKATION.md](SPEZIFIKATION.md)
 
 Dieses Dokument legt fest, **wie** `nostar` gebaut wird. **Was** das Programm tut, steht in der fachlichen Spezifikation. Abweichungen davon sind in Abschnitt 15 gesammelt (freigegeben am 2026-10-26 und 2026-10-27). Abschnitte 8 und 9 sind nach dem Spike (Meilenstein 1) überarbeitet.
 
@@ -53,8 +53,8 @@ src/
 ├── source.rs          Wörterbuch laden, prüfen, parsen
 ├── lexicon.rs         Wörterbuch-Modell + eigene Wörter
 ├── rules/
-│   ├── mod.rs         Typen: Rule, Pattern, Marker, Stage, Boundary
-│   ├── fixed.rs       Stufe 1: feste Formen, Partizipien
+│   ├── mod.rs         Typen: Rule, Stage, Marker, Left, Right; Testsammlung
+│   ├── fixed.rs       Stufe 1: feste Formen, substantivierte Adjektive, Adjektivendung
 │   ├── build.rs       lexicon → Regelliste (Varianten, Minimierung, Ordnung)
 │   ├── edit.rs        Edit-Skript, Anker und Pass je Regel
 │   ├── engine.rs      Referenz-Umsetzung auf Text
@@ -118,7 +118,7 @@ Verboten: `rules` kennt keine Fonts, `font` kennt kein Dateisystem außer Ein- u
 
 **Nicht** verwendet: `anyhow`, `tokio`, HTTP-Clients, `regex`, `chrono`, `rayon`, Logging-Frameworks.
 
-Externe Programme (per `std::process::Command`): `fc-list`, `fc-match`, `fc-cache`, `curl` (nur `data update`).
+Externe Programme (per `std::process::Command`): `fc-list`, `fc-match`, `fc-cache`, `curl` (nur `data update`), `gsettings` (optional, 10.3).
 
 Entwicklerwerkzeug, nicht Teil des Programms: HarfBuzz (C) für die Geschwindigkeitsmessung (9.7, 14.1).
 
@@ -545,11 +545,11 @@ Die schreibenden Befehle `data update`, `rules build`, `apply` und `remove` hole
 5. Veraltete Kopien löschen
 6. Manifest atomar schreiben
 7. `99-nostar.conf` atomar schreiben
-8. `fc-cache` aufrufen
+8. `fc-cache -f ~/.local/share/fonts` aufrufen und mit `fc-list` prüfen, dass alle Kopien sichtbar sind (10.4)
 
 Ein Abbruch zwischen 4 und 7 lässt das System funktionsfähig: Neue Kopien ohne Regel in `99-nostar.conf` sind zusätzliche Fonts gleichen Namens. Der nächste `apply` räumt auf.
 
-Ein Font gilt als unverändert, wenn er im Manifest steht, die SHA-256 von Original und `rules.tsv` mit dem Manifest übereinstimmen und die Kopie existiert. Schlägt der Patch eines Fonts fehl, der schon eine Kopie hat, wird die alte Kopie gelöscht, damit das Original sichtbar bleibt (fachl. Spezifikation 9.2). Ändert sich nichts, schreibt `apply` keine Datei und ruft `fc-cache` nicht auf.
+Ein Font gilt als unverändert, wenn er im Manifest steht, die SHA-256 von Original und `rules.tsv` mit dem Manifest übereinstimmen und die Kopie existiert. Schlägt der Patch eines Fonts fehl, der schon eine Kopie hat, wird die alte Kopie gelöscht, damit das Original sichtbar bleibt (fachl. Spezifikation 9.2). Ändert sich nichts, schreibt `apply` keine Datei und ruft `fc-cache` nur auf, wenn `fc-list` Kopien nicht zeigt.
 
 `--dry-run` ordnet die Kandidaten ein (patchen, unverändert, übersprungen mit Grund, zu löschende Kopien), patcht aber nicht; ob ein Patch fehlschlagen würde, zeigt es daher nicht.
 
@@ -642,7 +642,7 @@ Ausnahme beim Zustand vor dem ersten `apply` (fachl. Spezifikation 13.2, Punkt 6
 Format einer Zeile:
 
 ```
-2026-10-26T13:40:01Z INFO  font: patched /usr/share/fonts/noto/NotoSans-Regular.ttf rules=14308 size=+970KiB time=620ms
+2026-10-28T10:47:01Z INFO  font: patched /usr/share/fonts/noto/NotoSans-Regular.ttf rules=25212 lookups=1491 size=+1130KiB time=1016ms
 ```
 
 Zeitstempel in UTC aus `SystemTime` (eigene Umrechnung, keine Abhängigkeit). Das `target` ist der Modulname.
@@ -679,13 +679,17 @@ error: rules: rules.tsv missing, run "nostar rules build"
 error: rules: rules.tsv built from other config, run "nostar rules build"
 error: rules: 3 of 214 cases differ
   "Kolleg*innen": expected "Kollegen", got "Kolleg"
-error: font: NotoSans-Regular.ttf: no glyph for U+00E4
-error: font: NotoSans-Regular.ttf: GSUB: subtable of lookup 12 exceeds 64 KiB after split
-error: verify: NotoSans-Regular.ttf: "Ärzt*in" shaped as "Ärzt*in", expected "Arzt"
 error: lock: held by another nostar process: ~/.local/state/nostar/lock
 error: fontconfig: fc-cache exit status 1: <stderr von fc-cache>
 error: fontconfig: ~/.config/fontconfig/conf.d is a file, not a directory
 error: fontconfig: 12 of 42 patched copies not listed after fc-cache, e.g. ~/.local/share/fonts/nostar/usr/share/fonts/noto/NotoSerif-Regular.ttf
+```
+
+Fehler eines einzelnen Fonts brechen `apply` nicht ab. Sie stehen in der Zusammenfassung hinter `failed` (Pfad und Grund) und im Log:
+
+```
+failed       1  /usr/share/fonts/TTF/Foo.ttf: write: more than 65535 lookups
+failed       1  /usr/share/fonts/TTF/Foo.ttf: verify: "Ärzt*in" shaped as "Ärzt*in", expected "Arzt"
 ```
 
 ### 12.1 Exit-Codes

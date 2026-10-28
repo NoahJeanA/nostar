@@ -6,7 +6,7 @@ Zeigt gegenderte Wörter auf dem ganzen Linux-Desktop im generischen Maskulinum 
 
 `nostar` ändert keinen Text. Es baut Regeln in Kopien deiner Schriftarten ein. Beim Zeichnen wird aus `Lehrer*innen` dann „Lehrer“, aus `Ärzt:innen` „Ärzte“. Kopieren, Suchen und Speichern sehen weiterhin den Originaltext.
 
-> Status: Spezifikation. Noch kein Code.
+> Status: Version 1, abgenommen am 2026-10-28 (GTK, Qt, Firefox, Chrome).
 
 ## So funktioniert es
 
@@ -18,6 +18,14 @@ Zeigt gegenderte Wörter auf dem ganzen Linux-Desktop im generischen Maskulinum 
 
 Systemdateien werden nicht verändert, root-Rechte sind nicht nötig.
 
+## Installation
+
+Voraussetzungen: Rust ab 1.89, fontconfig (`fc-list`, `fc-match`, `fc-cache`), `curl`.
+
+```sh
+cargo install --path .   # installiert ~/.cargo/bin/nostar
+```
+
 ## Benutzung
 
 ```sh
@@ -26,7 +34,7 @@ nostar rules build      # Regelliste erzeugen und testen
 nostar apply            # Fonts patchen und einrichten
 ```
 
-Danach laufende Programme neu starten.
+Danach laufende Programme neu starten. Nach Updates der System-Schriften zeigt `nostar status` veraltete Kopien; `nostar apply` aktualisiert sie.
 
 ```sh
 nostar show "jede*r Kolleg*in"   # Was würde angezeigt? -> jeder Kollege
@@ -39,7 +47,7 @@ nostar remove                    # Alles rückgängig machen
 `~/.config/nostar/config.toml`. Alle Schlüssel sind optional.
 
 ```toml
-families = ["Adwaita Sans", "JetBrains Mono"]   # zusätzlich zu sans-serif/serif/monospace
+families = ["JetBrains Mono"]                   # zusätzlich zu sans-serif/serif/monospace und den GNOME-Schriften
 markers  = ["*", ":", "_", "·", "/", "/-"]
 fallback = "cut"                                # unbekannte Wörter: "cut" | "marker" | "off"
 
@@ -53,6 +61,7 @@ plural   = "Freunde"
 - Wirkt nur, wo Programme Systemschriften nutzen. Webfonts, PDFs, Electron-Apps und Text in Bildern bleiben unverändert.
 - Keine Grammatik: „mit den Lehrer\*innen“ wird zu „mit den Lehrer“.
 - Wird ein Wort in Stücken gezeichnet (teilweise fett, Zeilenumbruch), greift die Regel nicht.
+- Qt-Programme mit einem Font ohne Glyphe für den weichen Trennstrich (z.B. Noto Sans Mono): Wörter mit weichem Trennstrich werden nur teilweise umgewandelt.
 
 ## Dokumentation
 

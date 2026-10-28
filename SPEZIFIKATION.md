@@ -1,6 +1,6 @@
 # Spezifikation: `nostar`
 
-Status: Entwurf 3 · Stand: 2026-10-27
+Status: Version 1, abgenommen · Stand: 2026-10-28
 
 ---
 
@@ -82,7 +82,7 @@ Steht nach der Endung noch ein Wortteil (Zusammensetzung), wird nur die Genderfo
 | Kund\*innenservice | Kundenservice |
 | Lehrer\*innen-Konferenz | Lehrer-Konferenz |
 
-Die Zielform für Zusammensetzungen (Fugenform) wird im Wörterbuch geführt. Fehlt sie, wird die Plural-Zielform verwendet.
+Die Zielform für Zusammensetzungen ist die Plural-Zielform. Eine abweichende Fugenform kann in den eigenen Ergänzungen angegeben werden (Abschnitt 11; das Entgendert-Wörterbuch führt keine Fugenformen).
 
 ### 4.4 Groß- und Kleinschreibung
 
@@ -95,7 +95,7 @@ Die Zielform übernimmt die Schreibweise des Originals.
 
 ### 4.5 Verbindliche Beispiele
 
-Diese Fälle sind Teil der Testsammlung (13.1) und müssen exakt so angezeigt werden.
+Diese Fälle sind Teil der Testsammlung (13.1) und müssen exakt so angezeigt werden. Die Spalte „Stufe“ nennt, woher die Zielform fachlich stammt. `nostar show` kann Stufe 4 melden, wo hier 2 steht (z.B. „Lehrer\*innen“, „Kolleg\*in“): Liefert die Endungsregel dasselbe Ergebnis, wird die Wörterbuchregel beim Bauen weggelassen (TECHNIK.md 8.3).
 
 | Text | Anzeige | Stufe |
 |---|---|---|
@@ -373,7 +373,7 @@ Punkte 1–8 entschieden am 2026-10-26 (Punkt 5 geändert am 2026-10-27), Punkte
 | 5 | Neutrale Formen („Studierende“) | Nicht in Version 1 (4.6); Einstellung `participles` entfällt; entschieden 2026-10-27 |
 | 6 | Monospace-Fonts ausnehmen | Nein; mit Wörterbuch ist das Risiko für Code gering |
 | 7 | Automatisch nach Paket-Updates neu patchen | Nein; `status` weist auf veraltete Kopien hin |
-| 8 | Programmiersprache | Rust (fontations: `read-fonts`, `write-fonts`, `skrifa`) |
+| 8 | Programmiersprache | Rust (fontations: `read-fonts`, `write-fonts`; Prüfung mit `harfrust`) |
 | 9 | Feste Formen mit weiblicher Form vorne (`die*der`, `sie*er`) | Nicht in Version 1 (4.6); entschieden 2026-10-27 |
 | 10 | Maß für die Geschwindigkeit | Mehraufwand in ms je MB statt Verhältnis (8.3); entschieden 2026-10-27 |
 | 11 | Binnen-I | Bleibt an, trotz etwa 2–10 % Mehraufwand bei Prosa (Großbuchstabe `I` in „Ihre“, „Ihnen“); entschieden 2026-10-27 |

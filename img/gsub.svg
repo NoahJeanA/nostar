@@ -21,7 +21,7 @@
     <rect x="80" y="12" width="300" height="28" rx="4" fill="#f4f6f8" stroke="#8a96a3"/>
     <text x="92" y="31">K o l l e g [*] i n n e n</text>
   </g>
-  <text x="400" y="31" class="s">→ Anker „*“ (Klasse * : _ · /), davor Buchstabe, danach Buchstabe</text>
+  <text x="400" y="31" class="s">→ Anker „*“ (Genderzeichen-Klasse), davor Buchstabe, danach Buchstabe</text>
 
   <rect x="20" y="70" width="300" height="120" rx="6" class="g"/>
   <text x="35" y="94" class="t">Gate (Marker-Pass)</text>
@@ -39,10 +39,10 @@
 
   <rect x="350" y="220" width="390" height="140" rx="6" class="d"/>
   <text x="365" y="244" class="t">Blatt „eg“</text>
-  <text x="365" y="264" class="s">höchstens 24 Regeln, in Listenreihenfolge</text>
-  <text x="365" y="286" class="m">Kolleg [*innen]  → Replace(en), Delete…  ✓</text>
-  <text x="365" y="306" class="m">Kolleg [*in] L   → (Ausnahme)</text>
-  <text x="365" y="326" class="m">Kolleg [*in]     → Replace(e), Delete…</text>
+  <text x="365" y="264" class="s">höchstens 40 Regeln, in Listenreihenfolge</text>
+  <text x="365" y="286" class="m">eg [*innen]      → Replace(en), Delete…  ✓</text>
+  <text x="365" y="306" class="m">eg [*in] L       → (Ausnahme)</text>
+  <text x="365" y="326" class="m">eg [*in]         → Replace(e), Delete…</text>
   <text x="365" y="346" class="m">L [*innen]       → Rückfall</text>
 
   <rect x="765" y="220" width="180" height="140" rx="6" class="x"/>
