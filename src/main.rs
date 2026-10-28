@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 use std::time::Instant;
 
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use nostar::Error;
 use nostar::config::Config;
 use nostar::paths::Paths;
@@ -12,14 +12,22 @@ const EXIT_ABORT: u8 = 2;
 #[derive(Parser)]
 #[command(
     version,
-    about = "Displays German gender forms in the generic masculine by patching font copies"
+    about = "Displays German gender forms in the generic masculine by patching font copies",
+    args_conflicts_with_subcommands = true,
+    override_usage = "nostar [OPTIONS] <COMMAND>"
 )]
 struct Cli {
     /// More output on stderr: -v info, -vv debug
     #[arg(short, long, action = clap::ArgAction::Count, global = true)]
     verbose: u8,
+    /// Shell completion on stdout, for packages (TECHNIK.md 10)
+    #[arg(long, hide = true, value_enum)]
+    generate: Option<clap_complete::Shell>,
+    /// Man pages (one per command) into this directory, for packages (TECHNIK.md 10)
+    #[arg(long, hide = true, value_name = "DIR")]
+    generate_man: Option<std::path::PathBuf>,
     #[command(subcommand)]
-    command: Command,
+    command: Option<Command>,
 }
 
 #[derive(Subcommand)]
@@ -88,6 +96,28 @@ impl Command {
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
+    if let Some(shell) = cli.generate {
+        clap_complete::generate(shell, &mut Cli::command(), "nostar", &mut std::io::stdout());
+        return ExitCode::SUCCESS;
+    }
+    if let Some(dir) = &cli.generate_man {
+        return match clap_mangen::generate_to(Cli::command(), dir) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(e) => {
+                eprintln!("error: man pages: {}: {e}", dir.display());
+                ExitCode::from(EXIT_ABORT)
+            }
+        };
+    }
+    let command = match &cli.command {
+        Some(c) => c,
+        None => Cli::command()
+            .error(
+                clap::error::ErrorKind::MissingSubcommand,
+                "a command is required",
+            )
+            .exit(),
+    };
     let paths = match Paths::from_env() {
         Ok(p) => p,
         Err(e) => {
@@ -99,10 +129,10 @@ fn main() -> ExitCode {
     if let Err(e) = nostar::log::init(cli.verbose, &paths.log(), &paths.log_backup()) {
         log::warn!(target: "log", "{}", describe(&e, &paths));
     }
-    let name = cli.command.name();
+    let name = command.name();
     log::info!(target: "cmd", "start {name}");
     let start = Instant::now();
-    let result = run(&cli.command, &paths);
+    let result = run(command, &paths);
     let elapsed = start.elapsed().as_millis();
     match result {
         Ok(code) => {
